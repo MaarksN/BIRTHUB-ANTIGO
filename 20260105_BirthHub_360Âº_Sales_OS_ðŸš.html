@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirthHub 360º Sales OS 🚀</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthhub-360-unified';
+
+        window.db = db;
+        window.appId = appId;
+        window.auth = auth;
+
+        // Auth Protocol (Rule 3)
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        };
+        initAuth();
+
+        // Unified History Management (Rule 1)
+        window.saveToHistory = async (toolName, content, mode) => {
+            if (!auth.currentUser) return;
+            try {
+                const path = ['artifacts', appId, 'public', 'data', 'history'];
+                await addDoc(collection(db, ...path), {
+                    tool: toolName,
+                    mode: mode, // SDR, BDR or CLOSER
+                    content: content,
+                    timestamp: serverTimestamp(),
+                    userId: auth.currentUser.uid,
+                    operator: "Marcelo"
+                });
+                showToast(`DADOS SALVOS (${mode})! 💾`);
+            } catch (e) {
+                console.error(e);
+                showToast("ERRO AO SALVAR.");
+            }
+        };
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 
+                            primary: '#6366F1', // Indigo
+                            secondary: '#10B981', // Emerald
+                            accent: '#F43F5E', // Rose
+                            gold: '#F59E0B', // Amber (Closer)
+                            dark: '#0F172A',
+                            surface: '#1E293B'
+                        }
+                    },
+                    borderRadius: { '4xl': '2rem', '5xl': '2.5rem' },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root { --font-main: 'Plus Jakarta Sans', sans-serif; --font-head: 'Outfit', sans-serif; }
+        body { font-family: var(--font-main); transition: background 0.5s ease; overflow-x: hidden; }
+        
+        .dark body { 
+            background-color: #0F172A;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            color: #f8fafc; 
+        }
+        .light body { 
+            background-color: #F8FAFC;
+            background-image: radial-gradient(at 0% 0%, hsla(210,100%,96%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(250,100%,98%,1) 0, transparent 50%);
+            color: #1e293b; 
+        }
+        h1, h2, h3 { font-family: var(--font-head); }
+        .glass { backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .dark .glass { background: rgba(15, 23, 42, 0.65); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
+        .light .glass { background: rgba(255, 255, 255, 0.85); border-color: rgba(0, 0, 0, 0.05); }
+        
+        .tool-card { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; transform: translateY(20px); animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .tool-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.3); border-color: rgba(99, 102, 241, 0.5); }
+        @keyframes popIn { to { opacity: 1; transform: translateY(0); } }
+        
+        /* Stagger Logic handled in JS for cleaner CSS */
+        
+        .view-section { display: none; opacity: 0; transform: scale(0.95); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .view-active { display: block; opacity: 1; transform: scale(1); animation: fadeInView 0.5s ease-out forwards; }
+        @keyframes fadeInView { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 20px; }
+        .loader-spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid currentColor; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-brand-primary selection:text-white">
+
+    <!-- Header Unified -->
+    <header class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-7xl glass rounded-full px-8 py-3 flex items-center justify-between shadow-2xl backdrop-blur-xl transition-all duration-500">
+        <div class="flex items-center gap-4 cursor-pointer group" onclick="goHome()">
+            <div id="header-logo-bg" class="w-12 h-12 bg-gradient-to-br from-brand-primary to-purple-600 rounded-full flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform duration-300">
+                <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-xl tracking-tight leading-none dark:text-white text-slate-900 group-hover:text-brand-primary transition-colors">BirthHub <span id="header-sub" class="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">360º OS</span></h1>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span id="greeting-text">MARCELO ONLINE</span>
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-5">
+            <div class="hidden md:flex flex-col text-right">
+                <p class="text-xs font-black text-slate-400 font-mono tracking-widest" id="header-time">00:00</p>
+                <p class="text-[9px] font-bold text-slate-500 uppercase" id="header-date">--/--</p>
+            </div>
+            <button onclick="toggleTheme()" class="w-11 h-11 rounded-full glass hover:bg-white/10 flex items-center justify-center transition-all active:scale-90 group">
+                <i id="theme-icon" data-lucide="moon" class="w-5 h-5 text-indigo-400 group-hover:text-yellow-400 transition-colors"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-7xl mx-auto p-4 mt-28">
+        
+        <!-- HUB CENTRAL (Menu Principal) -->
+        <div id="view-hub" class="view-section view-active min-h-[70vh] flex flex-col items-center justify-center">
+            <div class="text-center mb-12 animate-[popIn_0.5s_ease-out]">
+                <h2 class="text-5xl md:text-7xl font-black tracking-tighter mb-4 dark:text-white text-slate-900">SALES <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">OPERATING SYSTEM</span></h2>
+                <p class="text-slate-500 font-bold uppercase tracking-[0.3em] text-sm">Selecione o Módulo Operacional</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl px-4">
+                <!-- BDR Module -->
+                <div onclick="selectModule('bdr')" class="group relative p-8 rounded-[2.5rem] glass cursor-pointer overflow-hidden hover:border-indigo-500/50 transition-all hover:-translate-y-2 tool-card" style="animation-delay: 0.1s">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i data-lucide="scan-search" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-3xl font-black uppercase tracking-tighter mb-2">BDR <span class="text-indigo-500 text-lg">Intel</span></h3>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Research & Pre-Sales</p>
+                    <div class="mt-8 flex items-center text-xs font-black uppercase tracking-widest text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0">
+                        Acessar Módulo <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </div>
+                </div>
+
+                <!-- SDR Module -->
+                <div onclick="selectModule('sdr')" class="group relative p-8 rounded-[2.5rem] glass cursor-pointer overflow-hidden hover:border-rose-500/50 transition-all hover:-translate-y-2 tool-card" style="animation-delay: 0.2s">
+                    <div class="absolute inset-0 bg-gradient-to-br from-rose-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i data-lucide="flame" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-3xl font-black uppercase tracking-tighter mb-2">SDR <span class="text-rose-500 text-lg">Hunter</span></h3>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Outbound & Qualificação</p>
+                    <div class="mt-8 flex items-center text-xs font-black uppercase tracking-widest text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0">
+                        Acessar Módulo <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </div>
+                </div>
+
+                <!-- Closer Module -->
+                <div onclick="selectModule('closer')" class="group relative p-8 rounded-[2.5rem] glass cursor-pointer overflow-hidden hover:border-amber-500/50 transition-all hover:-translate-y-2 tool-card" style="animation-delay: 0.3s">
+                    <div class="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i data-lucide="crown" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-3xl font-black uppercase tracking-tighter mb-2">Closer <span class="text-amber-500 text-lg">Elite</span></h3>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Negociação & Fecho</p>
+                    <div class="mt-8 flex items-center text-xs font-black uppercase tracking-widest text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0">
+                        Acessar Módulo <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRID DE FERRAMENTAS -->
+        <div id="view-grid" class="view-section">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 px-2">
+                <div>
+                    <span id="module-badge" class="inline-block py-1 px-3 rounded-full bg-white/5 text-white text-[10px] font-black uppercase tracking-widest mb-3 border border-white/10">Módulo Selecionado</span>
+                    <h2 class="text-4xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-3">
+                        Arsenal Tático <span class="emoji-float" id="module-emoji">⚡</span>
+                    </h2>
+                </div>
+                <button onclick="goHome()" class="px-6 py-3 glass rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-2 transition-all active:scale-95">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i> MENU MÓDULOS
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="tool-grid">
+                <!-- Cards renderizados via JS -->
+            </div>
+        </div>
+
+        <!-- TOOL EXECUTION VIEW -->
+        <div id="view-tool" class="view-section">
+            <div id="tool-container" class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+                <!-- Injetado via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Chat Mentor Global -->
+    <div id="chat-window" class="fixed bottom-24 right-8 w-96 h-[500px] glass rounded-[2.5rem] shadow-2xl z-[200] hidden flex flex-col overflow-hidden border-2 border-white/5 transition-transform duration-300 origin-bottom-right">
+        <div id="chat-header" class="p-6 bg-gradient-to-r from-brand-primary to-indigo-600 text-white flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-white/20 rounded-xl"><i data-lucide="bot" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-black text-sm uppercase tracking-wide">Mentor <span id="chat-mode-text">Sales</span></h3>
+                    <p class="text-[10px] opacity-80 font-medium">Gemini 2.5 Live</p>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="p-2 hover:bg-white/20 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        
+        <div id="chat-messages" class="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold">IA</div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-sm text-xs leading-relaxed text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    Olá Marcelo! Em que fase do funil vamos focar agora? Estou pronto. 🚀
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-t border-slate-200 dark:border-white/5 flex gap-2">
+            <input id="chat-input" type="text" placeholder="Dúvida estratégica..." class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full px-5 py-3 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all dark:text-white text-slate-900 border border-transparent">
+            <button onclick="sendChatMessage()" class="w-10 h-10 bg-brand-primary rounded-full text-white shadow-lg hover:bg-indigo-500 active:scale-90 transition-all flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Actions -->
+    <div class="fixed bottom-8 right-8 flex flex-col gap-4 z-[150]">
+        <button onclick="startGlobalVoice()" id="voice-btn" class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/30 hover:scale-110 hover:-translate-y-1 transition-all border-4 border-white/10 group">
+            <i data-lucide="mic" class="w-7 h-7 text-white group-hover:animate-pulse"></i>
+        </button>
+        <button onclick="toggleChat()" class="w-16 h-16 bg-gradient-to-tr from-brand-primary to-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:scale-110 hover:-translate-y-1 transition-all border-4 border-white/10 group">
+            <i data-lucide="message-circle" class="w-7 h-7 text-white"></i>
+            <span class="absolute top-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900"></span>
+        </button>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-msg" class="fixed bottom-12 left-1/2 -translate-x-1/2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-black shadow-2xl opacity-0 translate-y-10 transition-all duration-300 pointer-events-none z-[250] text-xs uppercase tracking-widest flex items-center gap-3 border border-white/10">
+        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+        <span>Ação Realizada!</span>
+    </div>
+
+    <script>
+        // CONFIG
+        const apiKey = ""; // Provided by Environment
+        const endpoints = {
+            text: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+            image: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+            tts: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`
+        };
+
+        let currentModule = 'hub'; // 'hub', 'bdr', 'sdr', 'closer'
+
+        // MASTER TOOL LIST (Unified from all 3 apps)
+        const masterTools = [
+            // --- BDR Tools ---
+            { id: 'bdr_script', modules: ['bdr'], name: 'Script BDR', icon: 'zap', color: 'indigo', emoji: '📝', desc: 'AIDA & Persuasão', prompt: 'Gere um script de prospecção ultra-assertivo (técnica AIDA) focado no valor de negócio específico para Marcelo usar com:' },
+            { id: 'bdr_summary', modules: ['bdr', 'sdr'], name: 'Resumo Web', icon: 'globe', color: 'blue', emoji: '🌐', desc: 'News & Dores Atuais', prompt: 'Use a busca Gemini para encontrar os eventos mais recentes, notícias e situação financeira desta empresa. Resuma as 3 dores imediatas que o Marcelo deve atacar.', useSearch: true },
+            { id: 'bdr_culture', modules: ['bdr', 'closer'], name: 'Tradutor Cultural', icon: 'languages', color: 'violet', emoji: '🌍', desc: 'Adaptação de Pitch', prompt: 'Adapte este rascunho de pitch de vendas para a cultura corporativa de um país específico ou região brasileira. Ajuste o tom e os gatilhos para Marcelo.' },
+            { id: 'bdr_uvp', modules: ['bdr'], name: 'Refinador UVP', icon: 'gem', color: 'emerald', emoji: '💎', desc: 'Proposta Única de Valor', prompt: 'Transforme estas funcionalidades técnicas complexas numa UVP de uma só frase impactante que o Marcelo possa usar como "One-liner".' },
+            { id: 'bdr_hidden', modules: ['bdr', 'sdr'], name: 'Objeções Ocultas', icon: 'eye', color: 'rose', emoji: '🧠', desc: 'Psicologia Reversa', prompt: 'Analise este email/mensagem do lead. Quais são as objeções reais que ele NÃO disse mas estão implícitas? Como Marcelo deve responder para quebrar o muro?' },
+            { id: 'bdr_battle', modules: ['bdr', 'sdr'], name: 'Battlecard Rivals', icon: 'swords', color: 'red', emoji: '⚔️', desc: 'Diferenciação', prompt: 'Use a busca Gemini para listar os 3 pontos onde a nossa concorrência mais falha contra este cliente e como Marcelo deve atacar.', useSearch: true },
+
+            // --- SDR Tools ---
+            { id: 'sdr_cadence', modules: ['sdr'], name: 'Cadência Total', icon: 'layers', color: 'rose', emoji: '📅', desc: 'Kit de prospecção completo', prompt: 'Atue como um SDR Elite. Crie uma cadência de prospecção outbound de 3 passos (Email, LinkedIn, Roteiro de Call) para o seguinte cenário:' },
+            { id: 'sdr_coldcall', modules: ['sdr'], name: 'Cold Call Sim', icon: 'phone-incoming', color: 'orange', emoji: '📞', desc: 'Simulador de objeções', prompt: 'Aja como um prospect ocupado e cético recebendo uma cold call. Reaja ao meu pitch inicial:' },
+            { id: 'sdr_jobspy', modules: ['sdr', 'bdr'], name: 'Espião de Vagas', icon: 'briefcase', color: 'slate', emoji: '🕵️', desc: 'Ache dores em vagas', prompt: 'Atue como um SDR Senior. Analise esta descrição de vaga. Identifique: 1. Tech stack. 2. Prioridades ocultas. 3. Dores para cold email.' },
+            { id: 'sdr_roast', modules: ['sdr'], name: 'Email Roast', icon: 'flame', color: 'orange', emoji: '🔥', desc: 'Crítica ácida de email', prompt: 'Atue como um comprador impaciente. Analise este cold email. Dê nota 0-10 e destrua os pontos fracos. Reescreva a abertura.' },
+            { id: 'sdr_disc', modules: ['sdr', 'closer'], name: 'DISC Decoder', icon: 'brain', color: 'fuchsia', emoji: '🧠', desc: 'Perfil do lead', prompt: 'Analise este texto do lead. Identifique o perfil DISC predominante e liste 3 regras de ouro para se comunicar.' },
+            { id: 'sdr_spin', modules: ['sdr'], name: 'SPIN Gen', icon: 'help-circle', color: 'violet', emoji: '🌀', desc: 'Perguntas Poderosas', prompt: 'Gere uma sequência de perguntas SPIN (Situação, Problema, Implicação, Necessidade) para extrair impacto financeiro sobre:' },
+            { id: 'sdr_preflight', modules: ['sdr'], name: 'Briefing Pré-Call', icon: 'clipboard-list', color: 'purple', emoji: '📝', desc: 'Prep em 3 min', prompt: 'Tenho reunião em 5 min com [Empresa]. Pesquise e crie briefing: 1. O que fazem. 2. Três perguntas SPIN. 3. Fato recente para rapport.', useSearch: true },
+            { id: 'sdr_whatsapp', modules: ['sdr'], name: 'Zap Audio Script', icon: 'mic', color: 'green', emoji: '🟢', desc: 'Roteiro de áudio', prompt: 'Crie roteiro para áudio de WhatsApp de 45s, tom casual e urgente, para:' },
+            { id: 'sdr_signals', modules: ['sdr', 'closer'], name: 'Detector Sinais', icon: 'radar', color: 'fuchsia', emoji: '📡', desc: 'Decodifique intenção', prompt: 'Analise esta resposta do lead. O que ele REALMENTE quis dizer (Subtexto)? Qual a temperatura?' },
+            
+            // --- Closer Tools ---
+            { id: 'close_script', modules: ['closer'], name: 'Closer Master', icon: 'gavel', color: 'amber', emoji: '🦈', desc: 'Roteiro de Fecho', prompt: 'Aja como um Closer de Elite. Gere uma estratégia de negociação final para garantir a assinatura de:' },
+            { id: 'close_sentiment', modules: ['closer'], name: 'Deal Predictor', icon: 'bar-chart-2', color: 'pink', emoji: '🔮', desc: 'Probabilidade Assinatura', prompt: 'Analise este histórico e preveja a probabilidade de assinatura (0-100). Sugira o "nudge" final.' },
+            { id: 'close_contract', modules: ['closer'], name: 'Contract X-Ray', icon: 'scale', color: 'slate', emoji: '⚖️', desc: 'Simplificador Jurídico', prompt: 'Analise esta cláusula. Traduza o juridiquês para linguagem simples e aponte riscos para o fecho.' },
+            { id: 'close_email', modules: ['closer'], name: 'Email Closer', icon: 'mail-check', color: 'sky', emoji: '📧', desc: 'Respostas Finais', prompt: 'Gere 3 opções de resposta para o e-mail do cliente (1: Agressiva, 2: Consultiva, 3: Break-up) para fechar o deal.' },
+            { id: 'close_audit', modules: ['closer'], name: 'Meeting Audit', icon: 'clipboard-check', color: 'teal', emoji: '📋', desc: 'Auditoria Reunião', prompt: 'Analise este resumo. Extraia Sinais de Compra sutis que perdi e liste 3 Next Steps mandatórios.' },
+            { id: 'close_leverage', modules: ['closer'], name: 'Leverage Hunter', icon: 'newspaper', color: 'orange', emoji: '📰', desc: 'Gatilho Urgência', prompt: 'Pesquise notícias recentes (30 dias) sobre esta empresa. Encontre um Gatilho de Urgência (risco/oportunidade) para usar como alavanca de fecho HOJE.', useSearch: true },
+            { id: 'close_matrix', modules: ['closer'], name: 'Committee Map', icon: 'network', color: 'indigo', emoji: '🏛️', desc: 'Mapa de Poder', prompt: 'Crie um Mapa de Poder visual. Identifique: 👑 Economic Buyer, 🛡️ Champion, 🚧 Blocker. Qual a moeda de troca de cada um?' },
+            { id: 'close_reverser', modules: ['closer'], name: 'Objection Killer', icon: 'rotate-cw', color: 'rose', emoji: '🛡️', desc: 'Objeção Final', prompt: 'Eu serei o lead dando uma objeção final. Critique e diga como responder para fechar agora. Objeção:' },
+            { id: 'close_signer', modules: ['closer', 'bdr'], name: 'Signer Hunter', icon: 'search-code', color: 'violet', emoji: '🔍', desc: 'Busca Boolean', prompt: 'Gere filtros booleanos para Sales Navigator para encontrar CFOs e Signatários Finais na empresa:' },
+
+            // --- Visual & Creative (All Modules) ---
+            { id: 'gen_persona', modules: ['bdr', 'sdr', 'closer'], name: 'Visual Persona', icon: 'image', color: 'cyan', emoji: '👤', desc: 'Retrato ICP', prompt: 'Crie um retrato fotorealista profissional de estúdio de:', isImage: true },
+            { id: 'gen_meme', modules: ['sdr'], name: 'Meme Tático', icon: 'smile', color: 'yellow', emoji: '🎭', desc: 'Quebra-gelo Visual', prompt: 'Crie uma imagem estilo cartoon/meme divertida e profissional (Pixar 3D) sobre esta situação de vendas:', isImage: true }
+        ];
+
+        // LOGIC
+        function goHome() {
+            showView('hub');
+            currentModule = 'hub';
+            updateTheme('hub');
+        }
+
+        function selectModule(mode) {
+            currentModule = mode;
+            showView('grid');
+            renderGrid(mode);
+            updateTheme(mode);
+        }
+
+        function updateTheme(mode) {
+            const themes = {
+                hub: { text: 'Sales OS', color: 'indigo' },
+                bdr: { text: 'BDR Intel', color: 'indigo' },
+                sdr: { text: 'SDR Hunter', color: 'rose' },
+                closer: { text: 'Closer Elite', color: 'amber' }
+            };
+            
+            const badge = document.getElementById('module-badge');
+            const sub = document.getElementById('header-sub');
+            const logo = document.getElementById('header-logo-bg');
+            const chatMode = document.getElementById('chat-mode-text');
+            const chatHeader = document.getElementById('chat-header');
+            
+            if(badge) {
+                badge.innerText = themes[mode].text;
+                // Update badge color classes if needed, for now simplistic
+            }
+            if(sub) sub.innerText = themes[mode].text;
+            if(chatMode) chatMode.innerText = themes[mode].text;
+
+            // Header Gradient adjustment based on mode
+            let grad = 'from-brand-primary to-purple-600';
+            let chatGrad = 'from-brand-primary to-indigo-600';
+            
+            if (mode === 'sdr') { grad = 'from-rose-500 to-orange-600'; chatGrad = 'from-rose-500 to-orange-600'; }
+            if (mode === 'closer') { grad = 'from-amber-500 to-yellow-600'; chatGrad = 'from-amber-500 to-yellow-600'; }
+            
+            if(logo) logo.className = `w-12 h-12 bg-gradient-to-br ${grad} rounded-full flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform duration-300`;
+            if(chatHeader) chatHeader.className = `p-6 bg-gradient-to-r ${chatGrad} text-white flex justify-between items-center`;
+        }
+
+        function renderGrid(mode) {
+            const grid = document.getElementById('tool-grid');
+            const filtered = masterTools.filter(t => t.modules.includes(mode));
+            
+            grid.innerHTML = filtered.map((t, index) => `
+                <div onclick="openTool('${t.id}')" class="tool-card relative p-8 rounded-[2.5rem] glass cursor-pointer flex flex-col justify-between group overflow-hidden min-h-[220px]" style="animation-delay: ${index * 0.05}s">
+                    <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-150 duration-700">
+                        <i data-lucide="${t.icon}" class="w-32 h-32 text-${t.color}-500"></i>
+                    </div>
+                    
+                    <div class="flex justify-between items-start z-10">
+                        <div class="w-14 h-14 rounded-3xl bg-${t.color}-500/10 flex items-center justify-center group-hover:bg-${t.color}-500 group-hover:text-white transition-all duration-300 shadow-lg shadow-${t.color}-500/10">
+                            <i data-lucide="${t.icon}" class="text-${t.color}-500 w-7 h-7 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <span class="text-2xl filter grayscale-0 hover:grayscale transition-all duration-300 transform group-hover:rotate-12">${t.emoji}</span>
+                    </div>
+                    
+                    <div class="z-10 mt-6">
+                        <h3 class="text-lg font-extrabold text-slate-800 dark:text-white mb-2 leading-tight group-hover:translate-x-1 transition-transform">${t.name}</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed border-l-2 border-${t.color}-500/20 pl-3">${t.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('view-active'));
+            const target = document.getElementById(`view-${id}`);
+            if (target) {
+                target.classList.add('view-active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function openTool(id) {
+            const tool = masterTools.find(t => t.id === id);
+            const container = document.getElementById('tool-container');
+            
+            container.innerHTML = `
+                <!-- INPUT -->
+                <div class="lg:col-span-5 flex flex-col gap-6">
+                    <div class="glass p-8 rounded-[3rem] shadow-2xl animate-[popIn_0.4s_ease-out]">
+                        <div class="flex items-center justify-between mb-8">
+                            <button onclick="showView('grid')" class="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center hover:bg-white hover:text-brand-primary transition-all dark:text-white text-slate-900 shadow-md">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            </button>
+                            <div class="flex items-center gap-3 bg-${tool.color}-500/10 px-4 py-2 rounded-full border border-${tool.color}-500/20">
+                                <i data-lucide="${tool.icon}" class="w-4 h-4 text-${tool.color}-500"></i>
+                                <h3 class="text-xs font-black uppercase text-${tool.color}-500 tracking-widest">${tool.name}</h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-4">Dados de Entrada</label>
+                                <textarea id="t-input" placeholder="Marcelo, insira o contexto aqui..." class="w-full bg-slate-50 dark:bg-black/20 border-2 border-slate-100 dark:border-white/5 rounded-[2rem] p-6 text-sm font-medium outline-none h-56 focus:border-${tool.color}-500/50 focus:bg-white dark:focus:bg-black/40 transition-all dark:text-white text-slate-800 placeholder-slate-400 resize-none shadow-inner"></textarea>
+                            </div>
+                            
+                            <div class="flex gap-3">
+                                <button onclick="refineInput()" class="flex-1 py-4 glass border border-white/10 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">Refinar</button>
+                                <button onclick="runIA('${id}')" id="exec-btn" class="flex-[2] py-5 bg-gradient-to-r from-${tool.color}-500 to-${tool.color}-600 rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 text-white shadow-xl shadow-${tool.color}-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all group overflow-hidden relative">
+                                    <span class="relative z-10">Executar</span>
+                                    <i data-lucide="zap" class="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- OUTPUT -->
+                <div class="lg:col-span-7 flex flex-col h-full min-h-[500px]">
+                    <div class="glass flex-1 p-8 md:p-10 rounded-[3rem] shadow-2xl relative flex flex-col border border-white/10 animate-[popIn_0.6s_ease-out]">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-${tool.color}-500 animate-pulse shadow-[0_0_10px_currentColor]"></div>
+                                <span class="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Resultado Gemini</span>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="saveResult('${tool.name}')" class="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-green-500 hover:text-white hover:border-green-400 transition-all text-slate-400" title="Salvar">
+                                    <i data-lucide="save" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="copyRes()" class="w-10 h-10 rounded-full bg-brand-primary text-white flex items-center justify-center hover:bg-indigo-400 shadow-lg shadow-brand-primary/30 transition-all active:scale-90" title="Copiar">
+                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="t-output" class="flex-1 text-base leading-relaxed dark:text-slate-200 text-slate-700 custom-scrollbar overflow-y-auto whitespace-pre-wrap font-medium p-2">
+                            <div class="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-6">
+                                <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
+                                    <i data-lucide="cpu" class="w-10 h-10"></i>
+                                </div>
+                                <p class="uppercase tracking-[0.3em] font-black text-xs">Aguardando Comando de Marcelo...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+            showView('tool');
+        }
+
+        async function refineInput() {
+            const input = document.getElementById('t-input');
+            if(!input.value) return;
+            const original = input.value;
+            input.value = "Otimizando contexto...";
+            try {
+                const res = await fetchWithRetry(endpoints.text, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Melhore este texto de entrada para ser mais claro e profissional para uma IA processar: ${original}` }] }] })
+                });
+                input.value = res.candidates?.[0]?.content?.parts?.[0]?.text || original;
+            } catch (e) { input.value = original; }
+        }
+
+        async function runIA(id) {
+            const tool = masterTools.find(t => t.id === id);
+            const input = document.getElementById('t-input').value;
+            const output = document.getElementById('t-output');
+            const btn = document.getElementById('exec-btn');
+            
+            if(!input) return;
+
+            btn.disabled = true;
+            const originalBtn = btn.innerHTML;
+            btn.innerHTML = `<div class="loader-spinner"></div>`;
+            
+            output.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center gap-6 animate-pulse">
+                    <div class="relative">
+                        <div class="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-slate-700 border-t-brand-primary animate-spin"></div>
+                    </div>
+                    <span class="text-xs font-black uppercase tracking-[0.3em] text-brand-primary">Processando ${currentModule.toUpperCase()}...</span>
+                </div>`;
+
+            try {
+                if (tool.isImage) {
+                    const result = await fetchWithRetry(endpoints.image, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            instances: { prompt: `${tool.prompt} ${input}. Professional, 8k, highly detailed.` },
+                            parameters: { sampleCount: 1 }
+                        })
+                    });
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    output.innerHTML = `<img src="${imageUrl}" class="w-full rounded-[2rem] shadow-2xl border-4 border-white/10" alt="Generated Image">`;
+                } else {
+                    const payload = {
+                        contents: [{ parts: [{ text: `Você é uma IA especializada em vendas (${currentModule.toUpperCase()}). ${tool.prompt} Contexto: ${input}. Responda diretamente ao Marcelo.` }] }],
+                        generationConfig: { temperature: 0.7 }
+                    };
+                    if (tool.useSearch) payload.tools = [{ "google_search": {} }];
+                    
+                    const result = await fetchWithRetry(endpoints.text, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro de processamento.";
+                    output.innerText = text;
+                    
+                    if (id.includes('coldcall') || id.includes('reverser')) speakResult(text);
+                }
+            } catch (e) {
+                console.error(e);
+                output.innerHTML = `<div class="text-rose-500 font-bold text-center">Falha na conexão neural. Tente novamente.</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtn;
+            }
+        }
+
+        // Shared Utils
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return await response.json();
+                } catch (err) {}
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
+            }
+            throw new Error('Falha API');
+        }
+
+        async function speakResult(text) {
+            try {
+                const response = await fetch(endpoints.tts, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: text.substring(0, 400) }] }], // Limit char for demo
+                        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } },
+                        model: "gemini-2.5-flash-preview-tts"
+                    })
+                });
+                const result = await response.json();
+                const pcmData = result.candidates[0].content.parts[0].inlineData.data;
+                const wavBuffer = pcmToWav(pcmData);
+                new Audio(URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }))).play();
+            } catch (e) {}
+        }
+        
+        function pcmToWav(pcmBase64) {
+            const pcm = atob(pcmBase64);
+            const buffer = new ArrayBuffer(44 + pcm.length);
+            const view = new DataView(buffer);
+            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(0, 'RIFF'); view.setUint32(4, 36 + pcm.length, true); writeString(8, 'WAVE');
+            writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true);
+            view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(36, 'data');
+            view.setUint32(40, pcm.length, true);
+            for (let i = 0; i < pcm.length; i++) view.setUint8(44 + i, pcm.charCodeAt(i));
+            return buffer;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msgs = document.getElementById('chat-messages');
+            if(!input.value) return;
+            const text = input.value;
+            msgs.innerHTML += `<div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]">${text}</div>`;
+            input.value = "";
+            msgs.scrollTop = msgs.scrollHeight;
+            
+            try {
+                const res = await fetchWithRetry(endpoints.text, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Aja como um Mentor ${currentModule.toUpperCase()}. Responda curto: ${text}` }] }] })
+                });
+                const ai = res.candidates?.[0]?.content?.parts?.[0]?.text;
+                msgs.innerHTML += `<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-sm text-xs leading-relaxed text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 max-w-[90%]">${ai}</div>`;
+                msgs.scrollTop = msgs.scrollHeight;
+            } catch(e) {}
+        }
+
+        function saveResult(name) {
+            const content = document.getElementById('t-output').innerText;
+            if(window.saveToHistory) window.saveToHistory(name, content, currentModule);
+        }
+
+        function copyRes() {
+            navigator.clipboard.writeText(document.getElementById('t-output').innerText);
+            showToast("COPIADO! 📋");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.querySelector('span').innerText = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, 40px)'; }, 2500);
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+            lucide.createIcons();
+        }
+
+        function toggleChat() {
+            document.getElementById('chat-window').classList.toggle('hidden');
+        }
+        
+        function updateClock() {
+            const now = new Date();
+            const timeEl = document.getElementById('header-time');
+            const dateEl = document.getElementById('header-date');
+            if (timeEl) timeEl.innerText = now.toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('pt-PT');
+        }
+        
+        function startGlobalVoice() {
+            if (!('webkitSpeechRecognition' in window)) return showToast("Sem suporte a voz.");
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'pt-BR';
+            const btn = document.getElementById('voice-btn');
+            btn.classList.add('animate-pulse', 'border-white');
+            recognition.onresult = (e) => {
+                const active = document.getElementById('t-input') || document.getElementById('chat-input');
+                if(active) active.value = e.results[0][0].transcript;
+            };
+            recognition.onend = () => btn.classList.remove('animate-pulse', 'border-white');
+            recognition.start();
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        lucide.createIcons();
+    </script>
+</body>
+</html>

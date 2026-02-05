@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirthHub 360º Closer 🚀</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthhub-360-closer';
+
+        window.db = db;
+        window.appId = appId;
+        window.auth = auth;
+
+        // Auth Protocol (Rule 3)
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        };
+        initAuth();
+
+        // Save History (Rule 1)
+        window.saveToHistory = async (toolName, content) => {
+            if (!auth.currentUser) return;
+            try {
+                const path = ['artifacts', appId, 'public', 'data', 'history'];
+                await addDoc(collection(db, ...path), {
+                    tool: toolName,
+                    content: content,
+                    timestamp: serverTimestamp(),
+                    userId: auth.currentUser.uid,
+                    operator: "Marcelo"
+                });
+                // Limpar rascunho ao salvar com sucesso
+                localStorage.removeItem('draft_content');
+                localStorage.removeItem('last_active_tool');
+                
+                showToast("ESTRATÉGIA DE FECHO SALVA! ✨");
+            } catch (e) {
+                console.error(e);
+                showToast("ERRO AO SALVAR DADOS.");
+            }
+        };
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 
+                            primary: '#6366F1', 
+                            secondary: '#10B981', 
+                            dark: '#020617',
+                            surface: '#0F172A',
+                            accent: '#F59E0B'
+                        }
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '3.5rem',
+                    },
+                    typography: {
+                        DEFAULT: {
+                            css: {
+                                color: '#334155',
+                                h1: { color: '#1e293b' },
+                                h2: { color: '#1e293b' },
+                                strong: { color: '#1e293b' },
+                            },
+                        },
+                        dark: {
+                            css: {
+                                color: '#94a3b8',
+                                h1: { color: '#f8fafc' },
+                                h2: { color: '#f8fafc' },
+                                strong: { color: '#f8fafc' },
+                            },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root { --font-main: 'Plus Jakarta Sans', sans-serif; --font-head: 'Outfit', sans-serif; }
+        body { font-family: var(--font-main); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; }
+        .dark body { background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, #020617 100%); color: #f8fafc; }
+        .light body { background: #F1F5F9; color: #1e293b; }
+        h1, h2, h3 { font-family: var(--font-head); }
+        .glass { backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .dark .glass { background: rgba(15, 23, 42, 0.7); }
+        .light .glass { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.05); }
+        .tool-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .dark .tool-card { background: rgba(30, 41, 59, 0.5); }
+        .light .tool-card { background: white; border-color: rgba(0,0,0,0.05); }
+        .tool-card:hover { transform: translateY(-12px) scale(1.02); border-color: #6366F1; box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
+        .view-section { display: none; opacity: 0; transform: scale(0.98); }
+        .view-active { display: block; animation: appear 0.6s forwards cubic-bezier(0.23, 1, 0.32, 1); }
+        @keyframes appear { to { opacity: 1; transform: scale(1); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 20px; }
+        .loader-spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid #6366F1; border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-action { background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); transition: all 0.3s ease; }
+        
+        /* Markdown Styles */
+        .prose h1, .prose h2, .prose h3 { color: inherit; font-weight: 800; margin-bottom: 0.5em; margin-top: 1em; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+        .prose strong { color: #6366F1; }
+        .prose blockquote { border-left: 4px solid #6366F1; padding-left: 1em; font-style: italic; opacity: 0.8; }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <!-- Header Cockpit -->
+    <header class="sticky top-6 z-[100] mx-6 lg:mx-auto max-w-6xl glass rounded-5xl px-8 py-5 flex items-center justify-between shadow-2xl">
+        <div class="flex items-center gap-5 cursor-pointer group" onclick="showView('dashboard')">
+            <div class="w-12 h-12 bg-brand-primary rounded-3xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                <i data-lucide="rocket" class="w-7 h-7 text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-xl tracking-tight leading-none dark:text-white text-slate-900">BirthHub 360º <span class="text-brand-secondary text-base text-sm italic">CLOSER</span> 🚀</h1>
+                <p class="text-[10px] font-bold text-slate-500 tracking-[0.2em] uppercase mt-1.5" id="greeting-text">OPERADOR: MARCELO 🟢</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex flex-col text-right">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest" id="header-time">00:00:00</p>
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest" id="header-date">--/--/--</p>
+            </div>
+            <button onclick="toggleTheme()" class="w-12 h-12 rounded-3xl glass hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-all group">
+                <i id="theme-icon" data-lucide="moon" class="w-5 h-5 text-brand-accent group-hover:rotate-12 transition-all"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-6 mt-12">
+        
+        <!-- DASHBOARD PORTAL -->
+        <div id="view-dashboard" class="view-section view-active py-24 flex justify-center">
+            <div onclick="showView('grid')" class="w-full max-w-xl p-12 rounded-5xl tool-card text-center cursor-pointer group border-brand-primary/20 bg-brand-primary/5">
+                <div class="w-24 h-24 bg-brand-primary rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-2xl transition-transform group-hover:scale-110">
+                    <i data-lucide="terminal" class="w-12 h-12 text-white animate-pulse"></i>
+                </div>
+                <h2 class="text-4xl font-extrabold uppercase mb-4 tracking-tighter dark:text-white text-slate-900">Birthub 360° Closer ✨</h2>
+                <p class="text-slate-400 text-base mb-12 font-medium px-6 leading-relaxed">Marcelo, a sua infraestrutura para análise e fechamento de futuros contratos está operacional.</p>
+                <div class="py-5 btn-action rounded-4xl text-sm font-black text-white uppercase tracking-[0.3em] shadow-xl">
+                    Iniciar ✨
+                </div>
+            </div>
+        </div>
+
+        <!-- TOOLS GRID -->
+        <div id="view-grid" class="view-section">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div>
+                    <h2 class="text-3xl font-extrabold uppercase tracking-tight dark:text-white text-slate-900 flex items-center gap-3">Inteligência Gemini <span class="text-brand-primary">LMM</span> ⚡</h2>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Módulos de elite para Fecho e Negociação por Marcelo</p>
+                </div>
+                <button onclick="showView('dashboard')" class="w-fit px-8 py-3 glass rounded-full text-[11px] font-black text-slate-400 hover:text-brand-primary flex items-center gap-3 uppercase transition-all shadow-lg">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i> Dashboard
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8" id="tool-grid">
+                <!-- Dynamic injection -->
+            </div>
+        </div>
+
+        <!-- TOOL DETAIL VIEW -->
+        <div id="view-tool" class="view-section">
+            <div id="tool-container" class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <!-- Dynamic tool content -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Chat Mentor Flutuante -->
+    <div id="chat-window" class="fixed bottom-28 right-8 w-80 h-[500px] glass rounded-4xl shadow-2xl z-[200] hidden flex flex-col overflow-hidden border-brand-primary/30 scale-in-center">
+        <div class="p-6 bg-brand-primary text-white text-xs font-black uppercase flex justify-between items-center shadow-lg">
+            <div class="flex items-center gap-3">
+                <i data-lucide="shield-check" class="w-4 h-4 text-brand-secondary"></i>
+                <span>Mentor Closer ✨</span>
+            </div>
+            <button onclick="toggleChat()" class="hover:opacity-60 transition-opacity"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-6 overflow-y-auto text-xs space-y-5 custom-scrollbar bg-slate-900/10">
+            <!-- Mensagens dinâmicas entram aqui -->
+        </div>
+        <div class="p-5 border-t border-white/5 bg-slate-900/5 flex gap-3">
+            <input id="chat-input" type="text" placeholder="Marcelo, o que precisa?" class="flex-1 bg-black/5 dark:bg-white/5 rounded-full px-5 py-3 text-xs outline-none border border-white/10 focus:border-brand-primary transition-all dark:text-white text-slate-900">
+            <button onclick="sendChatMessage()" id="chat-send-btn" class="w-12 h-12 bg-brand-primary rounded-full flex items-center justify-center text-white shadow-lg transition-all active:scale-95 hover:brightness-110">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="fixed bottom-8 right-8 flex items-center gap-5 z-[150]">
+        <button onclick="startGlobalVoice()" id="voice-btn" class="w-16 h-16 bg-rose-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white/20">
+            <i data-lucide="mic" class="w-7 h-7 text-white"></i>
+        </button>
+        <button onclick="toggleChat()" class="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white/20">
+            <i data-lucide="message-circle" class="w-7 h-7 text-white"></i>
+        </button>
+    </div>
+
+    <!-- Global Toast -->
+    <div id="toast-msg" class="fixed bottom-12 left-1/2 -translate-x-1/2 px-10 py-4 bg-brand-secondary text-white rounded-full font-black shadow-2xl opacity-0 transition-all pointer-events-none z-[250] text-[11px] uppercase tracking-[0.2em] flex items-center gap-3">
+        <i data-lucide="star" class="w-4 h-4 animate-spin"></i>
+        <span id="toast-text">Sincronizando ✨</span>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO VITAL ---
+        // COLE SUA API KEY AQUI DENTRO DAS ASPAS
+        const apiKey = ""; 
+        // -------------------------
+
+        const endpoints = {
+            text: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+            image: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+            tts: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`
+        };
+
+        // ARSENAL COMPLETO DE FERRAMENTAS CLOSER
+        const tools = [
+            // ESTRATÉGIA & PREPARAÇÃO
+            { id: 'script', name: 'Closer Master ✨', icon: 'zap', color: 'indigo', desc: 'Roteiro de Fecho & Negociação 📝', prompt: 'Aja como um Closer de Elite. Gere um roteiro de fecho ou estratégia de negociação final para garantir a assinatura da conta de:' },
+            { id: 'premortem', name: 'Deal Pre-Mortem ✨', icon: 'alert-triangle', color: 'yellow', desc: 'Previsão de Catástrofe ⚠️', prompt: 'Realize um "Pre-Mortem". Assuma que o deal morreu na semana que vem. Liste as 3 causas mais prováveis (ex: sponsor perdeu poder, jurídico travou, budget congelou) e a ação preventiva imediata para o Marcelo blindar o contrato hoje.' },
+            { id: 'roi', name: 'ROI Architect ✨', icon: 'calculator', color: 'emerald', desc: 'Calculadora de Valor 💰', prompt: 'Aja como um CFO cético. Com base no contexto do cliente, crie um "Business Case" de guardanapo (simples e brutal) provando que o investimento se paga em menos de 90 dias. Foco em lucro líquido ou aversão à perda.' },
+            { id: 'matrix', name: 'Committee Map ✨', icon: 'network', color: 'fuchsia', desc: 'Mapa de Poder & Influência 🏛️', prompt: 'Com base na descrição do deal, crie um "Mapa de Poder" visual e hierárquico usando emojis. Identifique: 👑 Economic Buyer, 🛡️ Champion, 🚧 Blocker, 🕵️ Influencer. Para cada um, diga qual a "moeda de troca" psicológica para o Marcelo ganhar o voto deles.' },
+            { id: 'news', name: 'Leverage Hunter ✨', icon: 'newspaper', color: 'orange', desc: 'Notícias & Urgência 📰', prompt: 'Pesquise notícias recentes (últimos 30 dias) e relatórios sobre esta empresa. Encontre um "Gatilho de Urgência" (ex: expansão, nova regulação, queda de ações) que Marcelo possa usar como alavanca para fechar o contrato HOJE. Seja específico.', useSearch: true },
+            
+            // EXECUÇÃO & COMUNICAÇÃO
+            { id: 'email', name: 'Email Closer ✨', icon: 'mail-check', color: 'sky', desc: 'Respostas de Fecho 📧', prompt: 'Aqui está o último e-mail do cliente. Gere 3 opções de resposta para o Marcelo (1: Agressiva/Urgent, 2: Consultiva/Value, 3: "Break-up" tático) para fechar o deal:' },
+            { id: 'whatsapp', name: 'WhatsApp Sniper ✨', icon: 'message-circle', color: 'green', desc: 'Áudios e Textos Rápidos 📱', prompt: 'O cliente está no WhatsApp. Gere 3 opções de mensagens (ou roteiros para áudio de 30s): 1. "Nudge" (Lembrete casual), 2. "Urgency" (Oferta expira hoje), 3. "Value" (Link/Info útil). O tom deve ser profissional mas nativo do WhatsApp (curto, direto). Contexto: [Input].' },
+            { id: 'ghost', name: 'Ghost Buster ✨', icon: 'ghost', color: 'zinc', desc: 'Resgatar Leads Fantasmas 👻', prompt: 'O prospecto desapareceu (Ghosting). Contexto: [Input]. Gere 3 opções de mensagens de "Quebra de Padrão" (Pattern Interrupt) para o Marcelo enviar: 1. A "Break-up" (retirar a oferta com elegância), 2. A "Value Drop" (nova informação crucial), 3. A "Humorous/Human" (quebra de gelo desarmada). O objetivo é obter qualquer resposta.' },
+            { id: 'video', name: 'Video Hook ✨', icon: 'video', color: 'purple', desc: 'Roteiro de Vídeo (Loom) 🎥', prompt: 'O prospecto está ignorando textos. Gere um roteiro de 45 segundos para um vídeo (Loom/Vidyard) que o Marcelo deve gravar. O tom deve ser leve, "anti-vendas" e impossível de ignorar. Contexto do travamento: [Input].' },
+            { id: 'champion', name: 'Champion Coach ✨', icon: 'megaphone', color: 'orange', desc: 'Script para o Champion 🗣️', prompt: 'Aja como um estrategista de vendas. Meu "Champion" interno precisa vender meu projeto para o CFO/CEO dele. O contexto é: [Input]. Gere um e-mail ou roteiro curto e matador para o MEU CHAMPION enviar para o chefe dele, focando puramente em ROI e Custo da Inação (COI).' },
+
+            // COMBATE & OBJEÇÕES
+            { id: 'reverser', name: 'Objection Killer ✨', icon: 'rotate-cw', color: 'rose', desc: 'Simulador de Objeção Final 🎤', prompt: 'Eu serei o lead dando uma objeção final (preço, timing ou competidor). Você é o Closer (Gemini). Critique minha objeção e responda como Marcelo deve responder para fechar agora. Objeção:' },
+            { id: 'discount', name: 'Discount Defender ✨', icon: 'shield-alert', color: 'lime', desc: 'Defesa de Margem & Preço 🛡️', prompt: 'O cliente pediu um desconto ou questionou o preço. Contexto: [Input]. Gere 3 contra-propostas estratégicas para o Marcelo: 1. A "Troca" (dar o desconto SOMENTE em troca de algo: pagamento à vista, contrato mais longo, case de sucesso), 2. O "Agregador" (manter o preço mas adicionar um serviço de baixo custo/alto valor percebido), 3. O "Desafio" (questionar gentilmente se o preço é o único obstáculo para o fecho agora).' },
+            { id: 'pain', name: 'Pain Amplifier ✨', icon: 'flame', color: 'red', desc: 'Gerador de Urgência 🔥', prompt: 'O cliente está confortável demais. O problema dele é: [Input]. Gere um discurso curto e brutalmente honesto que amplifique as consequências negativas de NÃO agir agora (Custo da Inação). Use dados hipotéticos para criar medo da perda (Loss Aversion) e forçar uma decisão.' },
+            { id: 'judo', name: 'Negotiation Judo ✨', icon: 'smile-plus', color: 'cyan', desc: 'Desarme Psicológico 🥋', prompt: 'O cliente foi agressivo ou fez uma exigência irracional: [Input]. Gere 3 respostas de "Judo Psicológico" (estilo Chris Voss/FBI) para desarmá-lo usando empatia tática e perguntas calibradas ("Como eu posso fazer isso..."), sem dizer "não" diretamente.' },
+            { id: 'battlecard', name: 'Kill Switch 360º ✨', icon: 'swords', color: 'red', desc: 'Eliminar Concorrência Final ⚔️', prompt: 'Crie um argumento final "kill switch". O lead está indeciso entre nós e o concorrente citado. Como fechar agora? Concorrente:', useSearch: true },
+
+            // TÉCNICO & LEGAL
+            { id: 'contract', name: 'Contract X-Ray ✨', icon: 'scale', color: 'amber', desc: 'Simplificador Jurídico ⚖️', prompt: 'Aja como um especialista legal e comercial. Analise esta cláusula contratual ou termo. Traduza o "juridiquês" para linguagem simples e aponte riscos que podem travar o fecho para o Marcelo:' },
+            { id: 'termsheet', name: 'Term Sheet Express ✨', icon: 'file-text', color: 'slate', desc: 'Term Sheet Instantâneo 📄', prompt: 'Aja como um advogado comercial pragmático. Com base nestes pontos acordados verbalmente: [Input]. Gere um "One-Page Term Sheet" (Memorando de Entendimento) profissional, limpo e pronto para assinatura, para formalizar o acordo verbal agora.' },
+            { id: 'summary', name: 'Executive Brief ✨', icon: 'file-check', color: 'slate', desc: 'Resumo para Decisor (C-Level) 👔', prompt: 'O "Economic Buyer" (Decisor Final) não participou das reuniões e precisa assinar. Transforme estas notas bagunçadas em um "Executive Summary" de 1 página: Foco no Problema Financeiro, Solução, ROI e Cronograma. Notas: [Input].' },
+            { id: 'audit', name: 'Meeting Audit ✨', icon: 'clipboard-check', color: 'teal', desc: 'Auditoria de Reunião 📋', prompt: 'Analise este resumo/transcrição da reunião. Extraia "Sinais de Compra" sutis que o Marcelo pode ter perdido e liste 3 Next Steps mandatórios para garantir a assinatura:' },
+
+            // ANÁLISE & INTEL
+            { id: 'sentiment', name: 'Deal Predictor ✨', icon: 'brain-circuit', color: 'pink', desc: 'Probabilidade de Assinatura 🧠', prompt: 'Analise este histórico de negociação e preveja a probabilidade de assinatura (0-100). Identifique riscos ocultos e sugira o "nudge" (empurrão) final para Marcelo:' },
+            { id: 'linkedin', name: 'Negotiator Psyche ✨', icon: 'user-plus', color: 'cyan', desc: 'Psicologia de Decisor 👤', prompt: 'Analise esta bio de LinkedIn. Identifique o estilo de negociação (Analítico, Relacional, Agressivo) e o gancho psicológico para assinatura imediata.' },
+            { id: 'boolean', name: 'Signer Hunter ✨', icon: 'search-code', color: 'violet', desc: 'Busca de Signatários 🔍', prompt: 'Gere filtros booleanos complexos para o Sales Navigator para encontrar CFOs, Diretores Jurídicos e Signatários Finais na empresa:' },
+            { id: 'upsell', name: 'Upsell Architect ✨', icon: 'trending-up', color: 'green', desc: 'Expansão de Conta 📈', prompt: 'O cliente já está na base. Contexto de uso atual: [Input]. Gere uma estratégia de "Expansion" (Upsell ou Cross-sell) lógica. Crie o pitch focando em "Evolução de Maturidade" e não em gastar mais dinheiro. Como Marcelo deve apresentar isso ao decisor?' },
+            { id: 'global', name: 'Deal Localizer ✨', icon: 'globe', color: 'blue', desc: 'Adaptação Cultural de Contrato 🌐', prompt: 'Adapte esta proposta comercial ou termos de negociação para a cultura empresarial e etiqueta de fecho de:' },
+            { id: 'persona', name: 'Visual Signer ✨', icon: 'image', color: 'emerald', desc: 'Visualização do Executivo 👤', prompt: 'Gere um retrato cinematográfico, sério e de alta classe de um executivo C-Level prestes a assinar um contrato no setor:' }
+        ];
+
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return await response.json();
+                } catch (err) {}
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+            throw new Error('Falha no motor neural.');
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours();
+            const timeEl = document.getElementById('header-time');
+            const dateEl = document.getElementById('header-date');
+            if (timeEl) timeEl.innerText = now.toLocaleTimeString('pt-PT');
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('pt-PT');
+        }
+
+        function checkSession() {
+            const draft = localStorage.getItem('draft_content');
+            const lastToolId = localStorage.getItem('last_active_tool');
+            const msgs = document.getElementById('chat-messages');
+            
+            // Forçar abertura do chat
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.classList.remove('hidden');
+
+            if (draft && lastToolId) {
+                const tool = tools.find(t => t.id === lastToolId);
+                const toolName = tool ? tool.name : 'Módulo Anterior';
+                
+                msgs.innerHTML += `
+                    <div class="bg-indigo-600/20 p-4 rounded-3xl rounded-tl-none border border-brand-primary/30 text-slate-100 shadow-lg animate-pulse">
+                        <p class="font-bold mb-2">⚠ Sessão Não Finalizada Detectada</p>
+                        <p>Marcelo, notei que deixou um trabalho pendente no módulo <strong>${toolName}</strong>.</p>
+                        <p class="mt-2 text-[10px] opacity-70 truncate italic">"${draft.substring(0, 40)}..."</p>
+                        <button onclick="restoreSession('${lastToolId}')" class="mt-4 w-full py-2 bg-brand-primary hover:bg-brand-primary/80 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
+                            Retomar Agora 🚀
+                        </button>
+                    </div>
+                `;
+            } else {
+                msgs.innerHTML += `
+                    <div class="bg-white/10 dark:bg-slate-800/90 p-4 rounded-3xl rounded-tl-none border border-white/5 leading-relaxed dark:text-slate-100 text-slate-800">
+                        Bem-vindo de volta, Marcelo! 👋 <br><br>
+                        <strong>O que deseja fazer hoje?</strong><br>
+                        Estou pronto para fechar contratos. 🚀
+                    </div>
+                `;
+            }
+        }
+
+        function restoreSession(toolId) {
+            openTool(toolId);
+            const input = document.getElementById('t-input');
+            const savedContent = localStorage.getItem('draft_content');
+            if (input && savedContent) {
+                input.value = savedContent;
+                showToast("SESSÃO RESTAURADA! ✨");
+            }
+        }
+
+        function init() {
+            const grid = document.getElementById('tool-grid');
+            grid.innerHTML = tools.map(t => `
+                <div onclick="openTool('${t.id}')" class="tool-card p-8 rounded-4xl cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-14 h-14 rounded-3xl bg-${t.color}-500/10 flex items-center justify-center mb-5 transition-all group-hover:scale-110">
+                        <i data-lucide="${t.icon}" class="text-${t.color}-500 w-7 h-7"></i>
+                    </div>
+                    <span class="text-sm font-bold uppercase tracking-tight dark:text-white text-slate-800">${t.name}</span>
+                    <p class="text-[10px] text-slate-500 mt-3 font-bold uppercase tracking-widest">${t.desc}</p>
+                </div>
+            `).join('');
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+            lucide.createIcons();
+            
+            // Verificar sessão anterior após carregar
+            setTimeout(checkSession, 1000);
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('view-active'));
+            const target = document.getElementById(`view-${id}`);
+            if (target) target.classList.add('view-active');
+            lucide.createIcons();
+        }
+
+        function openTool(id) {
+            const tool = tools.find(t => t.id === id);
+            const container = document.getElementById('tool-container');
+            
+            // Salvar estado da ferramenta atual
+            localStorage.setItem('last_active_tool', id);
+            
+            container.innerHTML = `
+                <div class="glass p-10 rounded-4xl space-y-8 shadow-2xl animate-fade-in">
+                    <div class="flex items-center justify-between">
+                        <button onclick="showView('grid')" class="w-12 h-12 rounded-full glass flex items-center justify-center hover:bg-brand-primary/20 transition-all dark:text-white text-slate-900 shadow-lg">
+                            <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-${tool.color}-500/20 rounded-2xl">
+                                <i data-lucide="${tool.icon}" class="w-6 h-6 text-${tool.color}-500"></i>
+                            </div>
+                            <h3 class="text-lg font-black uppercase text-brand-primary tracking-tighter">${tool.name}</h3>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] border-l-4 border-brand-primary pl-4">${tool.desc}</p>
+                        <textarea id="t-input" placeholder="Marcelo, insira o contexto para o fecho ou negociação ✨..." class="w-full bg-black/5 dark:bg-slate-950/50 border border-white/10 rounded-4xl p-8 text-sm outline-none h-48 focus:border-brand-primary transition-all dark:text-white text-slate-900 shadow-inner"></textarea>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <button onclick="refinePitch()" class="flex-1 py-4 glass border border-white/10 rounded-4xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary/10 transition-all dark:text-slate-100 text-slate-800">Refinar Texto ✨</button>
+                        <button onclick="runIA('${id}')" id="exec-btn" class="flex-[2] py-6 btn-action rounded-4xl text-xs font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 text-white shadow-xl active:scale-95 transition-all hover:brightness-110">
+                            <span>Processar Gemini ✨</span>
+                            <i data-lucide="zap" class="w-5 h-5 animate-pulse"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="glass p-10 rounded-4xl flex flex-col min-h-[450px] shadow-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-8 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-brand-secondary animate-pulse shadow-[0_0_15px_#10B981]"></div>
+                            <span class="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Cérebro 360º</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="saveToHistory('${tool.name}', document.getElementById('t-output').innerText)" class="px-6 py-2.5 glass rounded-full text-[10px] font-black hover:bg-brand-secondary hover:text-white transition-all dark:text-white text-slate-800 uppercase tracking-widest shadow-md">Salvar ✨</button>
+                            <button onclick="copyToClipboard()" class="px-6 py-2.5 bg-brand-primary rounded-full text-[10px] font-black text-white uppercase transition-all tracking-widest shadow-md">Copiar</button>
+                        </div>
+                    </div>
+                    <!-- UPDATE: Changed to prose class for markdown -->
+                    <div id="t-output" class="flex-1 text-sm leading-relaxed dark:text-slate-200 text-slate-800 custom-scrollbar overflow-y-auto relative z-10 pr-2 prose dark:prose-dark max-w-none">
+                        <div class="h-full flex flex-col items-center justify-center opacity-30 text-center gap-6">
+                            <i data-lucide="cpu" class="w-16 h-16 text-brand-primary"></i>
+                            <p class="uppercase tracking-[0.3em] font-black text-[10px]">Aguardando Fluxo de Marcelo...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Adicionar listener para salvar rascunho
+            document.getElementById('t-input').addEventListener('input', function() {
+                localStorage.setItem('draft_content', this.value);
+            });
+            
+            showView('tool');
+        }
+
+        async function refinePitch() {
+            const input = document.getElementById('t-input');
+            if(!input.value) return;
+            const original = input.value;
+            input.value = "Lapidando a abordagem do Marcelo ✨...";
+            try {
+                const res = await fetchWithRetry(endpoints.text, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Reescreva o seguinte texto de negociação para o Marcelo de forma mais executiva, persuasiva e focada no fecho. Mantenha o tom de autoridade: ${original}` }] }]
+                    })
+                });
+                input.value = res.candidates?.[0]?.content?.parts?.[0]?.text || original;
+            } catch (e) { input.value = original; }
+        }
+
+        async function runIA(id) {
+            const tool = tools.find(t => t.id === id);
+            const input = document.getElementById('t-input').value;
+            const output = document.getElementById('t-output');
+            const btn = document.getElementById('exec-btn');
+            if(!input) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader-spinner"></div>`;
+            output.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-6 animate-pulse"><div class="loader-spinner"></div><span class="text-xs font-black uppercase tracking-[0.3em] text-brand-primary">Processando via Gemini Ultra ✨</span></div>`;
+
+            try {
+                if (id === 'persona') {
+                    const response = await fetchWithRetry(endpoints.image, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            instances: { prompt: `${tool.prompt} ${input}. Hyper-realistic executive portrait, cinematic lighting, 8k resolution, confident posture, office background.` },
+                            parameters: { sampleCount: 1 }
+                        })
+                    });
+                    const imageUrl = `data:image/png;base64,${response.predictions[0].bytesBase64Encoded}`;
+                    output.innerHTML = `<img src="${imageUrl}" class="w-full rounded-4xl shadow-2xl border-4 border-white/10" alt="ICP Visual">`;
+                } else {
+                    const payload = {
+                        contents: [{ parts: [{ text: `${tool.prompt} Contexto/Entrada: ${input}. Responda diretamente ao Marcelo de forma estratégica e focada no fecho.` }] }],
+                        generationConfig: { temperature: 0.7 }
+                    };
+                    if (tool.useSearch) payload.tools = [{ "google_search": {} }];
+                    
+                    const data = await fetchWithRetry(endpoints.text, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na resposta.";
+                    // UPDATE: Parse markdown before setting HTML
+                    output.innerHTML = marked.parse(resultText);
+                    if(id === 'reverser') speakResult(resultText);
+                }
+            } catch (e) {
+                console.error(e);
+                output.innerText = "Falha crítica no sistema neural. Marcelo, verifique a ligação.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Processar Gemini ✨</span> <i data-lucide="zap" class="w-5 h-5 text-white"></i>`;
+                lucide.createIcons();
+            }
+        }
+
+        async function speakResult(text) {
+            try {
+                const response = await fetch(endpoints.tts, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Diga de forma curta e assertiva: ${text}` }] }],
+                        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } },
+                        model: "gemini-2.5-flash-preview-tts"
+                    })
+                });
+                const result = await response.json();
+                const pcmData = result.candidates[0].content.parts[0].inlineData.data;
+                const pcm = atob(pcmData);
+                const buffer = new ArrayBuffer(44 + pcm.length);
+                const view = new DataView(buffer);
+                const sampleRate = 24000;
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+                };
+                writeString(0, 'RIFF'); view.setUint32(4, 36 + pcm.length, true); writeString(8, 'WAVE');
+                writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true); writeString(36, 'data');
+                view.setUint32(40, pcm.length, true);
+                for (let i = 0; i < pcm.length; i++) view.setUint8(44 + i, pcm.charCodeAt(i));
+                new Audio(URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }))).play();
+            } catch (e) { console.error("Erro Áudio:", e); }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msgs = document.getElementById('chat-messages');
+            if(!input.value) return;
+            const text = input.value;
+            msgs.innerHTML += `<div class="bg-indigo-500/20 p-4 rounded-3xl rounded-tr-none text-right ml-10 border border-brand-primary/20 text-slate-100">${text}</div>`;
+            input.value = "";
+            try {
+                const res = await fetchWithRetry(endpoints.text, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Marcelo perguntou: ${text}. Aja como o Mentor Estratégico BirthHub focado em Fecho de Contratos (Closer). Responda de forma curta e assertiva.` }] }] })
+                });
+                const ai = res.candidates?.[0]?.content?.parts?.[0]?.text || "Erro.";
+                // UPDATE: Parse Markdown in Chat too
+                msgs.innerHTML += `<div class="bg-slate-800/90 p-4 rounded-3xl rounded-tl-none mr-10 border border-white/5 shadow-lg text-slate-200 prose prose-invert text-xs">${marked.parse(ai)}</div>`;
+                msgs.scrollTop = msgs.scrollHeight;
+            } catch(e) {}
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+            lucide.createIcons();
+        }
+
+        function toggleChat() {
+            document.getElementById('chat-window').classList.toggle('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            const text = document.getElementById('toast-text');
+            text.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 3000);
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('t-output').innerText;
+            navigator.clipboard.writeText(text);
+            showToast("TEXTO COPIADO! ✨");
+        }
+
+        function startGlobalVoice() {
+            if (!('webkitSpeechRecognition' in window)) return;
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'pt-BR';
+            const btn = document.getElementById('voice-btn');
+            btn.classList.add('animate-pulse', 'bg-white', 'text-rose-500');
+            recognition.onresult = (e) => {
+                const active = document.getElementById('t-input') || document.getElementById('chat-input');
+                if(active) active.value = e.results[0][0].transcript;
+            };
+            recognition.onend = () => btn.classList.remove('animate-pulse', 'bg-white', 'text-rose-500');
+            recognition.start();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

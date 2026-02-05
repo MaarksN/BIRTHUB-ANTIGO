@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirthHub 360º BDR 🚀</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'birthhub-360-bdr';
+
+        window.db = db;
+        window.appId = appId;
+        window.auth = auth;
+
+        // Protocolo de Autenticação (Rule 3)
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        };
+        initAuth();
+
+        window.saveToHistory = async (toolName, content) => {
+            if (!auth.currentUser) return;
+            try {
+                const path = ['artifacts', appId, 'public', 'data', 'history'];
+                await addDoc(collection(db, ...path), {
+                    tool: toolName,
+                    content: content,
+                    timestamp: serverTimestamp(),
+                    userId: auth.currentUser.uid,
+                    operator: "Marcelo"
+                });
+                showToast("ESTRATÉGIA GUARDADA! ✨");
+            } catch (e) {
+                console.error("Firestore Error:", e);
+            }
+        };
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 
+                            primary: '#6366F1', 
+                            secondary: '#10B981', 
+                            dark: '#020617',
+                            surface: '#0F172A',
+                            accent: '#F59E0B'
+                        }
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '3.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root { --font-main: 'Plus Jakarta Sans', sans-serif; --font-head: 'Outfit', sans-serif; }
+        body { font-family: var(--font-main); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; }
+        .dark body { background: radial-gradient(circle at 100% 0%, #1e1b4b 0%, #020617 100%); color: #f8fafc; }
+        .light body { background: radial-gradient(circle at 100% 0%, #f1f5f9 0%, #cbd5e1 100%); color: #1e293b; }
+        h1, h2, h3 { font-family: var(--font-head); }
+        .glass { backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .dark .glass { background: rgba(15, 23, 42, 0.7); }
+        .light .glass { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.05); }
+        .tool-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .dark .tool-card { background: rgba(30, 41, 59, 0.5); }
+        .light .tool-card { background: white; border-color: rgba(0,0,0,0.05); }
+        .tool-card:hover { transform: translateY(-12px) scale(1.02); border-color: #6366F1; box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.4); }
+        .view-section { display: none; opacity: 0; transform: scale(0.98); }
+        .view-active { display: block; animation: appear 0.6s forwards cubic-bezier(0.23, 1, 0.32, 1); }
+        @keyframes appear { to { opacity: 1; transform: scale(1); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 20px; }
+        .loader-spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid #6366F1; border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-action { background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); transition: all 0.3s ease; }
+        .btn-action:hover { filter: brightness(110%); transform: scale(1.02); }
+        .form-input { 
+            @apply w-full bg-black/10 dark:bg-slate-950/50 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-brand-primary transition-all shadow-inner;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <!-- Header Principal -->
+    <header class="sticky top-6 z-[100] mx-6 lg:mx-auto max-w-6xl glass rounded-5xl px-8 py-5 flex items-center justify-between shadow-2xl">
+        <div class="flex items-center gap-5 cursor-pointer group" onclick="showView('dashboard')">
+            <div class="w-12 h-12 bg-brand-primary rounded-3xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                <i data-lucide="zap" class="w-7 h-7 text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-xl tracking-tight leading-none dark:text-white text-slate-900 uppercase">BirthHub <span class="text-brand-secondary text-base italic">360º BDR</span> 🚀</h1>
+                <p class="text-[10px] font-bold text-slate-500 tracking-[0.2em] uppercase mt-1.5" id="greeting-text">OPERADOR: MARCELO 🟢</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-[10px] font-black">
+            <div class="hidden md:flex flex-col text-right">
+                <p class="text-slate-400 uppercase tracking-widest" id="header-time">00:00:00</p>
+                <p class="text-slate-500 uppercase tracking-widest" id="header-date">--/--/--</p>
+            </div>
+            <button onclick="toggleTheme()" class="w-12 h-12 rounded-3xl glass hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-all group shadow-inner border border-white/10">
+                <i id="theme-icon" data-lucide="moon" class="w-5 h-5 text-brand-accent group-hover:rotate-12 transition-all"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-6 mt-12">
+        
+        <!-- DASHBOARD PORTAL -->
+        <div id="view-dashboard" class="view-section view-active py-24 flex justify-center">
+            <div onclick="showView('grid')" class="w-full max-w-xl p-12 rounded-5xl tool-card text-center cursor-pointer group border-brand-primary/20 bg-brand-primary/5 shadow-2xl">
+                <div class="w-24 h-24 bg-brand-primary rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-2xl transition-transform group-hover:scale-110">
+                    <i data-lucide="brain-circuit" class="w-12 h-12 text-white animate-pulse"></i>
+                </div>
+                <h2 class="text-4xl font-extrabold uppercase mb-4 tracking-tighter dark:text-white text-slate-900">Sala de Guerra ✨</h2>
+                <p class="text-slate-400 text-base mb-12 font-medium px-6 leading-relaxed">Marcelo, o motor Gemini 2.5 Pro está pronto. Qual o alvo estratégico de hoje?</p>
+                <div class="py-5 btn-action rounded-4xl text-sm font-black text-white uppercase tracking-[0.3em] shadow-xl">
+                    Abrir Arsenal Tático ✨
+                </div>
+            </div>
+        </div>
+
+        <!-- GRADE DE FERRAMENTAS -->
+        <div id="view-grid" class="view-section">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div>
+                    <h2 class="text-3xl font-extrabold uppercase tracking-tight dark:text-white text-slate-900 flex items-center gap-3">Arsenal Gemini <span class="text-brand-primary">PRO</span> ⚡</h2>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Tecnologia avançada para Marcelo dominar a prospecção</p>
+                </div>
+                <button onclick="showView('dashboard')" class="w-fit px-8 py-3 glass rounded-full text-[11px] font-black text-slate-400 hover:text-brand-primary flex items-center gap-3 uppercase transition-all shadow-md">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-brand-primary"></i> Voltar
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8" id="tool-grid">
+                <!-- Injetado via JS -->
+            </div>
+        </div>
+
+        <!-- CONTEÚDO DA FERRAMENTA -->
+        <div id="view-tool" class="view-section">
+            <div id="tool-container" class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <!-- Dynamic tool content -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Chat Mentor Flutuante -->
+    <div id="chat-window" class="fixed bottom-28 right-8 w-80 h-[500px] glass rounded-4xl shadow-2xl z-[200] hidden flex flex-col overflow-hidden border-brand-primary/30 scale-in-center">
+        <div class="p-6 bg-brand-primary text-white text-xs font-black uppercase flex justify-between items-center shadow-lg">
+            <div class="flex items-center gap-3">
+                <i data-lucide="shield-check" class="w-4 h-4 text-brand-secondary"></i>
+                <span>Mentor Marcelo ✨</span>
+            </div>
+            <button onclick="toggleChat()" class="hover:opacity-60 transition-opacity"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-6 overflow-y-auto text-xs space-y-5 custom-scrollbar bg-slate-900/10">
+            <div class="bg-white/10 dark:bg-slate-800/90 p-4 rounded-3xl rounded-tl-none border border-white/5 leading-relaxed dark:text-slate-100 text-slate-800 font-medium">Marcelo, como posso refinar a sua estratégia de prospecção hoje? 🎯</div>
+        </div>
+        <div class="p-5 border-t border-white/5 bg-slate-900/5 flex flex-col gap-3">
+            <div class="flex gap-2 mb-1">
+                <select id="mentor-tone" class="bg-black/20 text-[9px] font-black uppercase border border-white/10 rounded-full px-2 py-1 outline-none text-slate-400 dark:text-slate-400">
+                    <option value="Consultivo" selected>🧠 Consultivo</option>
+                    <option value="Agressivo">🔥 Agressivo</option>
+                    <option value="Empático">❤️ Empático</option>
+                </select>
+            </div>
+            <div class="flex gap-3">
+                <input id="chat-input" type="text" placeholder="Dúvida comercial..." class="flex-1 bg-black/5 dark:bg-white/5 rounded-full px-5 py-3 text-xs outline-none border border-white/10 focus:border-brand-primary transition-all dark:text-white text-slate-900">
+                <button onclick="sendChatMessage()" id="chat-send-btn" class="w-12 h-12 bg-brand-primary rounded-full flex items-center justify-center text-white shadow-lg transition-all active:scale-95">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="fixed bottom-8 right-8 flex items-center gap-5 z-[150]">
+        <button onclick="startGlobalVoice()" id="voice-btn" class="w-16 h-16 bg-rose-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white/20 group">
+            <i data-lucide="mic" class="w-7 h-7 text-white group-hover:scale-110 transition-transform"></i>
+        </button>
+        <button onclick="toggleChat()" class="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white/20">
+            <i data-lucide="message-circle" class="w-7 h-7 text-white"></i>
+        </button>
+    </div>
+
+    <!-- Global Toast -->
+    <div id="toast-msg" class="fixed bottom-12 left-1/2 -translate-x-1/2 px-10 py-4 bg-brand-secondary text-white rounded-full font-black shadow-2xl opacity-0 transition-all pointer-events-none z-[250] text-[11px] uppercase tracking-[0.2em]">
+        Operação Sincronizada ✨
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        const endpoints = {
+            text: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+            image: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+            tts: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`
+        };
+
+        const tools = [
+            { 
+                id: 'roi_gen', name: 'ROI Estratégico ✨', icon: 'calculator', color: 'emerald', desc: 'Dados em Ganhos 💰', 
+                fields: [
+                    { id: 'ticket', label: 'Ticket Médio (Lead)', type: 'text', placeholder: 'Ex: €1000/mês' },
+                    { id: 'pain_cost', label: 'Custo Mensal da Dor', type: 'text', placeholder: 'Quanto perdem hoje?' },
+                    { id: 'solution_value', label: 'Investimento Proposto', type: 'text', placeholder: 'Valor da nossa solução' }
+                ],
+                prompt: 'Gere um argumento de ROI tático para o Marcelo. Use os dados financeiros fornecidos para provar que a inércia custa mais que o investimento.' 
+            },
+            { 
+                id: 'news_bridge', name: 'Local Hook ✨', icon: 'newspaper', color: 'blue', desc: 'Quebra-gelo Web 🌐', 
+                fields: [
+                    { id: 'city', label: 'Cidade/Região do Lead', type: 'text', placeholder: 'Ex: São Paulo, Lisboa...' },
+                    { id: 'industry', label: 'Indústria', type: 'text', placeholder: 'Ex: Logística, Fintech...' }
+                ],
+                prompt: 'Use a pesquisa Gemini para encontrar notícias recentes de economia nestes dados. Gere um gancho de abordagem regional impossível de ignorar para o Marcelo.', useSearch: true 
+            },
+            { 
+                id: 'cadence_pro', name: 'Sequência Elite ✨', icon: 'mail-plus', color: 'indigo', desc: 'Fluxo 3 Toques 📧', 
+                fields: [
+                    { id: 'role', label: 'Cargo do Decisor', type: 'text', placeholder: 'Ex: CTO, Head de Vendas...' },
+                    { id: 'main_pain', label: 'Principal Problema', type: 'text', placeholder: 'Ex: Falta de visibilidade de dados' },
+                    { id: 'rival', label: 'Rival Atual', type: 'text', placeholder: 'Quem usam hoje?' }
+                ],
+                prompt: 'Gere uma sequência de 3 e-mails (Curto, Valor, Re-engagement) ultra-diretos. Foco em autoridade e curiosidade para o Marcelo.' 
+            },
+            { 
+                id: 'rival_battle', name: 'Rival Battle ✨', icon: 'shield-alert', color: 'red', desc: 'Golpe Crítico ⚔️', 
+                fields: [
+                    { id: 'rival_name', label: 'Nome do Concorrente', type: 'text', placeholder: 'Ex: Salesforce, SAP...' },
+                    { id: 'pain_points', label: 'Reclamação do Lead', type: 'text', placeholder: 'O que o lead detesta no rival?' }
+                ],
+                prompt: 'Use a busca Gemini para listar as 3 falhas de produto mais citadas deste rival. Crie um pitch de "Troca Indolor" para o Marcelo.', useSearch: true 
+            },
+            { 
+                id: 'persona', name: 'Materializar ICP ✨', icon: 'image', color: 'pink', desc: 'Avatar Visual 👤', 
+                fields: [
+                    { id: 'age', label: 'Faixa Etária', type: 'text', placeholder: 'Ex: 40-50 anos' },
+                    { id: 'style', label: 'Estilo Corporativo', type: 'text', placeholder: 'Ex: Tech-Moderno, Formal Tradicional' }
+                ],
+                prompt: 'Gere um retrato profissional realista de um decisor executivo.' 
+            },
+            { 
+                id: 'transcription', name: 'Analista 360º ✨', icon: 'file-text', color: 'amber', desc: 'Post-Call Intel 🧠', 
+                fields: [
+                    { id: 'transcript', label: 'Cole a Transcrição', type: 'textarea', placeholder: 'Cole aqui o texto da call...' }
+                ],
+                prompt: 'Analise esta transcrição. Marcelo precisa de: 1. Dores explícitas, 2. Próximos passos e 3. Nível de interesse (0-10).' 
+            }
+        ];
+
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return await response.json();
+                } catch (err) {}
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+            throw new Error('Falha no motor neural Gemini.');
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const timeEl = document.getElementById('header-time');
+            const dateEl = document.getElementById('header-date');
+            if (timeEl) timeEl.innerText = now.toLocaleTimeString('pt-PT');
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('pt-PT');
+        }
+
+        function init() {
+            const grid = document.getElementById('tool-grid');
+            grid.innerHTML = tools.map(t => `
+                <div onclick="openTool('${t.id}')" class="tool-card p-8 rounded-4xl cursor-pointer flex flex-col items-center text-center shadow-lg group border border-white/5">
+                    <div class="w-14 h-14 rounded-3xl bg-${t.color}-500/10 flex items-center justify-center mb-5 transition-transform group-hover:scale-110">
+                        <i data-lucide="${t.icon}" class="text-${t.color}-500 w-7 h-7"></i>
+                    </div>
+                    <span class="text-sm font-bold uppercase tracking-tight dark:text-white text-slate-800 leading-tight">${t.name}</span>
+                    <p class="text-[10px] text-slate-500 mt-3 font-bold uppercase tracking-widest leading-none">${t.desc}</p>
+                </div>
+            `).join('');
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+            lucide.createIcons();
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('view-active'));
+            const target = document.getElementById(`view-${id}`);
+            if (target) target.classList.add('view-active');
+            lucide.createIcons();
+        }
+
+        function openTool(id) {
+            const tool = tools.find(t => t.id === id);
+            const container = document.getElementById('tool-container');
+            
+            const fieldsHTML = tool.fields.map(f => `
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black uppercase text-slate-500 ml-2 tracking-widest">${f.label}</label>
+                    ${f.type === 'textarea' 
+                        ? `<textarea id="f-${f.id}" placeholder="${f.placeholder}" class="form-input h-32 custom-scrollbar dark:text-white"></textarea>`
+                        : `<input type="text" id="f-${f.id}" placeholder="${f.placeholder}" class="form-input dark:text-white">`
+                    }
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="glass p-10 rounded-4xl space-y-8 shadow-2xl animate-fade-in">
+                    <div class="flex items-center justify-between">
+                        <button onclick="showView('grid')" class="w-12 h-12 rounded-full glass flex items-center justify-center hover:bg-brand-primary/20 transition-all dark:text-white text-slate-900 shadow-md">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-${tool.color}-500/20 rounded-2xl">
+                                <i data-lucide="${tool.icon}" class="w-6 h-6 text-${tool.color}-500"></i>
+                            </div>
+                            <h3 class="text-lg font-black uppercase text-brand-primary tracking-tighter">${tool.name}</h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-5">
+                        ${fieldsHTML}
+                    </div>
+                    
+                    <button onclick="runIA('${id}')" id="exec-btn" class="w-full py-6 btn-action rounded-4xl text-xs font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 text-white shadow-xl hover:brightness-110 transition-all active:scale-95">
+                        <span>Gerar Inteligência ✨</span>
+                        <i data-lucide="zap" class="w-5 h-5 animate-pulse"></i>
+                    </button>
+                </div>
+                
+                <div class="glass p-10 rounded-4xl flex flex-col min-h-[500px] shadow-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-8 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-brand-secondary animate-pulse shadow-[0_0_15px_#10B981]"></div>
+                            <span class="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Diagnóstico Gemini Pro</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="saveToHistory('${tool.name}', document.getElementById('t-output').innerText)" class="px-6 py-2.5 glass rounded-full text-[10px] font-black hover:bg-brand-secondary hover:text-white transition-all dark:text-white text-slate-800 uppercase tracking-widest">Guardar ✨</button>
+                            <button onclick="copyToClipboard()" class="px-6 py-2.5 bg-brand-primary rounded-full text-[10px] font-black text-white uppercase transition-all tracking-widest">Copiar</button>
+                        </div>
+                    </div>
+                    <div id="t-output" class="flex-1 text-sm leading-relaxed dark:text-slate-200 text-slate-800 custom-scrollbar overflow-y-auto whitespace-pre-wrap relative z-10 pr-2">
+                        <div class="h-full flex flex-col items-center justify-center opacity-20 text-center gap-6">
+                            <i data-lucide="cpu" class="w-16 h-16 text-brand-primary"></i>
+                            <p class="uppercase tracking-[0.3em] font-black text-[10px]">Aguardando dados estruturados do Marcelo...</p>
+                        </div>
+                    </div>
+                    <div id="audio-action" class="hidden absolute bottom-6 right-6 z-20">
+                        <button onclick="playResultAudio()" class="w-14 h-14 bg-brand-primary rounded-full flex items-center justify-center text-white shadow-lg animate-bounce border-4 border-white/20">
+                            <i data-lucide="volume-2" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            showView('tool');
+        }
+
+        async function runIA(id) {
+            const tool = tools.find(t => t.id === id);
+            const output = document.getElementById('t-output');
+            const btn = document.getElementById('exec-btn');
+            
+            // Collect all field data
+            let contextString = "";
+            tool.fields.forEach(f => {
+                const val = document.getElementById(`f-${f.id}`).value;
+                if(val) contextString += `${f.label}: ${val}\n`;
+            });
+
+            if(!contextString && id !== 'persona') return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader-spinner"></div>`;
+            output.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-6 animate-pulse"><div class="loader-spinner"></div><span class="text-xs font-black uppercase tracking-[0.3em] text-brand-primary">Orquestrando Gemini Pro ✨</span></div>`;
+
+            try {
+                if (id === 'persona') {
+                    const response = await fetchWithRetry(endpoints.image, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            instances: { prompt: `${tool.prompt} Contexto: ${contextString}. Cinematic lighting, executive portrait, ultra-high resolution.` },
+                            parameters: { sampleCount: 1 }
+                        })
+                    });
+                    const imageUrl = `data:image/png;base64,${response.predictions[0].bytesBase64Encoded}`;
+                    output.innerHTML = `<img src="${imageUrl}" class="w-full rounded-4xl shadow-2xl border-4 border-white/10" alt="ICP Persona">`;
+                } else {
+                    const systemPrompt = "Você é um Diretor de Vendas de elite com 20 anos de experiência em prospecção Enterprise. Responda em Português de Portugal. Use uma linguagem pragmática, técnica e sem rodeios. O operador chama-se Marcelo.";
+                    
+                    let payload = {
+                        contents: [{ 
+                            parts: [{ text: `${tool.prompt}\n\nCONTEXTO DO LEAD:\n${contextString}\n\nPor favor, entregue uma resposta tática e pronta para uso imediato pelo Marcelo.` }] 
+                        }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: { 
+                            temperature: 0.7,
+                            topP: 0.95,
+                            maxOutputTokens: 2048 
+                        }
+                    };
+
+                    if (tool.useSearch) payload.tools = [{ "google_search": {} }];
+                    
+                    const data = await fetchWithRetry(endpoints.text, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na resposta.";
+                    output.innerText = resultText;
+                    
+                    if(['roi_gen', 'news_bridge', 'script'].includes(id)) {
+                        document.getElementById('audio-action').classList.remove('hidden');
+                        window.lastResultText = resultText;
+                        speakWithMentor(resultText.substring(0, 300));
+                    }
+                }
+            } catch (e) {
+                output.innerText = "Falha crítica no sistema neural. Marcelo, verifique a conexão.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Gerar Inteligência ✨</span> <i data-lucide="zap" class="w-5 h-5 text-white"></i>`;
+                lucide.createIcons();
+            }
+        }
+
+        async function speakWithMentor(text) {
+            try {
+                const response = await fetch(endpoints.tts, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Diga de forma assertiva para o Marcelo: ${text}` }] }],
+                        generationConfig: { 
+                            responseModalities: ["AUDIO"], 
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } 
+                        },
+                        model: "gemini-2.5-flash-preview-tts"
+                    })
+                });
+                const result = await response.json();
+                const pcmData = result.candidates[0].content.parts[0].inlineData.data;
+                const pcm = atob(pcmData);
+                const buffer = new ArrayBuffer(44 + pcm.length);
+                const view = new DataView(buffer);
+                const sampleRate = 24000;
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+                };
+                writeString(0, 'RIFF'); view.setUint32(4, 36 + pcm.length, true); writeString(8, 'WAVE');
+                writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true); writeString(36, 'data');
+                view.setUint32(40, pcm.length, true);
+                for (let i = 0; i < pcm.length; i++) view.setUint8(44 + i, pcm.charCodeAt(i));
+                new Audio(URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }))).play();
+            } catch (e) { console.error("Erro Áudio", e); }
+        }
+
+        async function playResultAudio() {
+            if(window.lastResultText) speakWithMentor(window.lastResultText.substring(0, 400));
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msgs = document.getElementById('chat-messages');
+            const tone = document.getElementById('mentor-tone').value;
+            if(!input.value) return;
+            const text = input.value;
+            msgs.innerHTML += `<div class="bg-indigo-500/20 p-4 rounded-3xl rounded-tr-none text-right ml-10 border border-brand-primary/20 text-slate-100 font-medium">${text}</div>`;
+            input.value = "";
+            try {
+                const res = await fetchWithRetry(endpoints.text, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Marcelo perguntou: ${text}. Aja como o Diretor BirthHub com um tom ${tone}. Seja curto e estratégico.` }] }] })
+                });
+                const ai = res.candidates?.[0]?.content?.parts?.[0]?.text || "Erro.";
+                msgs.innerHTML += `<div class="bg-slate-800/90 p-4 rounded-3xl rounded-tl-none mr-10 border border-white/5 shadow-lg text-slate-200 font-medium">${ai}</div>`;
+                msgs.scrollTop = msgs.scrollHeight;
+                speakWithMentor(ai.substring(0, 250));
+            } catch(e) {}
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.documentElement.classList.toggle('light', !isDark);
+            document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+            lucide.createIcons();
+        }
+
+        function toggleChat() {
+            document.getElementById('chat-window').classList.toggle('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 3000);
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('t-output').innerText;
+            navigator.clipboard.writeText(text);
+            showToast("ESTRATÉGIA COPIADA! ✨");
+        }
+
+        function startGlobalVoice() {
+            if (!('webkitSpeechRecognition' in window)) return;
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'pt-BR';
+            const btn = document.getElementById('voice-btn');
+            btn.classList.add('animate-pulse', 'bg-white', 'text-rose-500');
+            recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                // Encontrar o primeiro input visível para preencher
+                const active = document.querySelector('.form-input') || document.getElementById('chat-input');
+                if(active) active.value = transcript;
+            };
+            recognition.onend = () => btn.classList.remove('animate-pulse', 'bg-white', 'text-rose-500');
+            recognition.start();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
