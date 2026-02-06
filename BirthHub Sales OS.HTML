@@ -4,18 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BirthHub 360º Sales OS 🚀</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, getDocs, orderBy, limit, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+
+
+        // Safe Firebase Config Loading
+        let firebaseConfig;
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                firebaseConfig = JSON.parse(__firebase_config);
+            } catch(e) { console.error("Invalid firebase config", e); }
+        }
+
+        if (!firebaseConfig) {
+            console.warn("Firebase config missing. Using mock to prevent crash.");
+            firebaseConfig = {
+                apiKey: "mock-api-key",
+                authDomain: "mock-project.firebaseapp.com",
+                projectId: "mock-project",
+                storageBucket: "mock-project.appspot.com",
+                messagingSenderId: "000000000000",
+                appId: "1:000000000000:web:0000000000000000000000"
+            };
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -40,7 +61,7 @@
                 const path = ['artifacts', appId, 'public', 'data', 'history'];
                 await addDoc(collection(db, ...path), {
                     tool: toolName,
-                    mode: mode, 
+                    mode: mode,
                     content: content,
                     timestamp: serverTimestamp(),
                     userId: auth.currentUser.uid,
@@ -132,10 +153,10 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 
-                            primary: '#6366F1', 
-                            secondary: '#10B981', 
-                            accent: '#F43F5E', 
+                        brand: {
+                            primary: '#6366F1',
+                            secondary: '#10B981',
+                            accent: '#F43F5E',
                             gold: '#F59E0B',
                             dark: '#0F172A',
                             surface: '#1E293B'
@@ -156,33 +177,33 @@
             }
         }
     </script>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         :root { --font-main: 'Plus Jakarta Sans', sans-serif; --font-head: 'Outfit', sans-serif; }
         body { font-family: var(--font-main); transition: background 0.5s ease; overflow-x: hidden; }
-        
-        .dark body { 
+
+        .dark body {
             background-color: #0F172A;
             background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
-            color: #f8fafc; 
+            color: #f8fafc;
         }
-        .light body { 
+        .light body {
             background-color: #F8FAFC;
             background-image: radial-gradient(at 0% 0%, hsla(210,100%,96%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(250,100%,98%,1) 0, transparent 50%);
-            color: #1e293b; 
+            color: #1e293b;
         }
         h1, h2, h3 { font-family: var(--font-head); }
         .glass { backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.1); }
         .dark .glass { background: rgba(15, 23, 42, 0.65); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
         .light .glass { background: rgba(255, 255, 255, 0.85); border-color: rgba(0, 0, 0, 0.05); }
-        
+
         .tool-card { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; transform: translateY(20px); animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
         .tool-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.3); border-color: rgba(99, 102, 241, 0.5); }
         @keyframes popIn { to { opacity: 1; transform: translateY(0); } }
-        
+
         .view-section { display: none; opacity: 0; transform: scale(0.95); transition: opacity 0.4s ease, transform 0.4s ease; }
         .view-active { display: block; opacity: 1; transform: scale(1); animation: fadeInView 0.5s ease-out forwards; }
         @keyframes fadeInView { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -191,7 +212,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 20px; }
         .loader-spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid currentColor; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
+
         input, textarea, select { transition: all 0.2s ease; }
         input:focus, textarea:focus, select:focus { transform: translateY(-1px); }
     </style>
@@ -217,6 +238,10 @@
                 <p class="text-[10px] font-black text-slate-400 font-mono tracking-widest" id="header-time">00:00</p>
                 <p class="text-[8px] font-bold text-slate-500 uppercase" id="header-date">--/--</p>
             </div>
+            <div class="hidden md:flex relative group mr-2">
+                <input type="text" id="tool-search" placeholder="Buscar (Alt+F)..." oninput="renderGrid(currentModule)" class="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 pl-9 text-[11px] font-bold text-slate-300 w-32 focus:w-48 outline-none focus:border-brand-primary transition-all placeholder:text-slate-600">
+                <i data-lucide="search" class="absolute left-3 top-2 w-3.5 h-3.5 text-slate-500 group-focus-within:text-brand-primary transition-colors"></i>
+            </div>
             <button onclick="loadHistory()" class="w-9 h-9 rounded-full glass hover:bg-white/10 flex items-center justify-center transition-all active:scale-90 group mr-2">
                 <i data-lucide="history" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
             </button>
@@ -226,11 +251,14 @@
             <button onclick="toggleTheme()" class="w-9 h-9 rounded-full glass hover:bg-white/10 flex items-center justify-center transition-all active:scale-90 group">
                 <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-indigo-400 group-hover:text-yellow-400 transition-colors"></i>
             </button>
+            <button onclick="toggleFullscreen()" title="Alt+F" class="w-9 h-9 rounded-full glass hover:bg-white/10 flex items-center justify-center transition-all active:scale-90 group ml-2">
+                <i data-lucide="expand" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+            </button>
         </div>
     </header>
 
     <main class="w-full max-w-7xl mx-auto p-4 mt-24">
-        
+
         <!-- HUB CENTRAL (Menu Principal) -->
         <div id="view-hub" class="view-section view-active min-h-[70vh] flex flex-col items-center justify-center">
             <div class="text-center mb-5 animate-[popIn_0.5s_ease-out]">
@@ -308,7 +336,7 @@
                     <i data-lucide="layout-grid" class="w-3 h-3"></i> MENU
                 </button>
             </div>
-            
+
             <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" id="tool-grid">
                 <!-- Cards renderizados via JS -->
             </div>
@@ -320,9 +348,7 @@
                 <div>
                     <span class="inline-block py-0.5 px-2 rounded-full bg-white/5 text-white text-[9px] font-black uppercase tracking-widest mb-2 border border-white/10">Memória do Sistema</span>
                     <h2 class="text-2xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
-                        Histórico <span class="emoji-float">📂</span>
-                    </h2>
-                </div>
+                        Histórico <span class="emoji-float">📂</span></h2></div><button onclick="exportHistoryCSV()" class="px-4 py-2 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm"><i data-lucide="download" class="w-4 h-4"></i> CSV</button>
                 <button onclick="goHome()" class="px-5 py-2 glass rounded-full text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-2 transition-all active:scale-95">
                     <i data-lucide="layout-grid" class="w-3 h-3"></i> MENU
                 </button>
@@ -354,7 +380,7 @@
             </div>
             <button onclick="toggleChat()" class="p-1.5 hover:bg-white/20 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
-        
+
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
             <div class="flex gap-2">
                 <div class="w-6 h-6 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold">IA</div>
@@ -363,7 +389,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-t border-slate-200 dark:border-white/5 flex gap-2">
             <input id="chat-input" type="text" placeholder="Dúvida estratégica..." class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 text-[11px] font-medium outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all dark:text-white text-slate-900 border border-transparent">
             <button onclick="sendChatMessage()" class="w-8 h-8 bg-brand-primary rounded-full text-white shadow-lg hover:bg-indigo-500 active:scale-90 transition-all flex items-center justify-center">
@@ -408,17 +434,21 @@
 
         // MASTER TOOL LIST - COM CAMPOS APRIMORADOS PARA GEMINI 2.5
         const masterTools = [
+            // --- Productivity Widgets ---
+            { id: 'widget_scratchpad', type: 'widget', widgetType: 'scratchpad', modules: ['hub', 'bdr', 'sdr', 'closer', 'leader'], name: 'Bloco de Notas', icon: 'file-text', color: 'slate', emoji: '📝', desc: 'Anotações Rápidas' },
+            { id: 'widget_goals', type: 'widget', widgetType: 'goals', modules: ['hub', 'leader'], name: 'Metas', icon: 'target', color: 'emerald', emoji: '🎯', desc: 'Tracking de Objetivos' },
+            { id: 'widget_calc', type: 'widget', widgetType: 'calculator', modules: ['hub', 'bdr', 'sdr', 'closer'], name: 'Calculadora', icon: 'calculator', color: 'orange', emoji: '🧮', desc: 'Cálculos Rápidos' },
             // --- BDR Tools ---
-            { 
-                id: 'bdr_vision', modules: ['bdr', 'sdr'], name: 'Vision Intel', icon: 'eye', color: 'cyan', emoji: '👁️', desc: 'Análise de Prints', 
+            {
+                id: 'bdr_vision', modules: ['bdr', 'sdr'], name: 'Vision Intel', icon: 'eye', color: 'cyan', emoji: '👁️', desc: 'Análise de Prints',
                 prompt: 'Você é um BDR Sênior. Analise esta imagem com visão computacional. Identifique oportunidades de venda.', acceptsImage: true,
                 fields: [
                     { id: 'focus', label: 'Foco da Análise', type: 'select', options: ['Tecnologias Utilizadas', 'Estrutura do Time', 'Dores/Gaps Visíveis', 'Notícias/Expansão'] },
                     { id: 'ctx', label: 'Contexto Extra', type: 'text', placeholder: 'Ex: Vendemos software de RH' }
                 ]
             },
-            { 
-                id: 'bdr_content', modules: ['bdr'], name: 'Ghostwriter', icon: 'pen-tool', color: 'pink', emoji: '👻', desc: 'LinkedIn Viral', 
+            {
+                id: 'bdr_content', modules: ['bdr'], name: 'Ghostwriter', icon: 'pen-tool', color: 'pink', emoji: '👻', desc: 'LinkedIn Viral',
                 prompt: 'Você é um Copywriter Top Voice do LinkedIn especializado em B2B.',
                 fields: [
                     { id: 'topic', label: 'Tema do Post', type: 'text', placeholder: 'Ex: Erros na contratação de Tech' },
@@ -426,8 +456,8 @@
                     { id: 'style', label: 'Estilo', type: 'select', options: ['Polêmico/Contrarian', 'Storytelling Emocional', 'Lista Prática (How-to)', 'Análise de Dados'] }
                 ]
             },
-            { 
-                id: 'bdr_script', modules: ['bdr'], name: 'Script BDR', icon: 'zap', color: 'indigo', emoji: '📝', desc: 'AIDA & Persuasão', 
+            {
+                id: 'bdr_script', modules: ['bdr'], name: 'Script BDR', icon: 'zap', color: 'indigo', emoji: '📝', desc: 'AIDA & Persuasão',
                 prompt: 'Você é um especialista em Cold Calling e Scripts.',
                 fields: [
                     { id: 'prospect', label: 'Cargo do Lead', type: 'text', placeholder: 'Ex: Diretor de Marketing' },
@@ -436,23 +466,23 @@
                     { id: 'framework', label: 'Framework', type: 'select', options: ['AIDA (Atenção, Interesse...)', 'PAS (Problema, Agitação...)', 'Depoimento/Prova Social'] }
                 ]
             },
-            { 
-                id: 'bdr_summary', modules: ['bdr', 'sdr'], name: 'Resumo Web', icon: 'globe', color: 'blue', emoji: '🌐', desc: 'News & Dores Atuais', 
+            {
+                id: 'bdr_summary', modules: ['bdr', 'sdr'], name: 'Resumo Web', icon: 'globe', color: 'blue', emoji: '🌐', desc: 'News & Dores Atuais',
                 prompt: 'Realize uma pesquisa profunda na web sobre a empresa alvo.', useSearch: true,
                 fields: [
                     { id: 'company', label: 'Empresa Alvo', type: 'text', placeholder: 'Ex: Coca-Cola Brasil' },
                     { id: 'focus', label: 'O que buscar?', type: 'select', options: ['Notícias Recentes', 'Saúde Financeira/Layoffs', 'Lançamentos de Produtos', 'Fusões e Aquisições'] }
                 ]
             },
-            
+
             // --- SDR Tools ---
-            { 
-                id: 'roleplay_gk', modules: ['sdr'], name: 'Roleplay: Secretária', icon: 'shield', color: 'orange', emoji: '🛡️', desc: 'Simulador em Chat', isChat: true, 
-                persona: 'Uma secretária executiva protetora e experiente. Sua missão é bloquear vendedores. Use desculpas como "está em reunião", "mande por email".', 
-                firstMsg: 'Bom dia, escritório da Diretoria. Quem deseja falar?' 
+            {
+                id: 'roleplay_gk', modules: ['sdr'], name: 'Roleplay: Secretária', icon: 'shield', color: 'orange', emoji: '🛡️', desc: 'Simulador em Chat', isChat: true,
+                persona: 'Uma secretária executiva protetora e experiente. Sua missão é bloquear vendedores. Use desculpas como "está em reunião", "mande por email".',
+                firstMsg: 'Bom dia, escritório da Diretoria. Quem deseja falar?'
             },
-            { 
-                id: 'sdr_cadence', modules: ['sdr'], name: 'Cadência Total', icon: 'layers', color: 'rose', emoji: '📅', desc: 'Fluxo de Prospecção', 
+            {
+                id: 'sdr_cadence', modules: ['sdr'], name: 'Cadência Total', icon: 'layers', color: 'rose', emoji: '📅', desc: 'Fluxo de Prospecção',
                 prompt: 'Crie uma cadência de prospecção outbound multicanal.',
                 fields: [
                     { id: 'persona', label: 'Persona Alvo', type: 'text', placeholder: 'Ex: Gerente de Logística' },
@@ -460,18 +490,18 @@
                     { id: 'duration', label: 'Duração', type: 'select', options: ['15 Dias (Agressiva)', '30 Dias (Consultiva)'] }
                 ]
             },
-            { 
-                id: 'sdr_coldcall', modules: ['sdr'], name: 'Cold Call Sim', icon: 'phone-incoming', color: 'orange', emoji: '📞', desc: 'Simulador de Objeções', 
+            {
+                id: 'sdr_coldcall', modules: ['sdr'], name: 'Cold Call Sim', icon: 'phone-incoming', color: 'orange', emoji: '📞', desc: 'Simulador de Objeções',
                 prompt: 'Atue como um prospect que recebeu uma ligação fria.',
                 fields: [
                     { id: 'pitch', label: 'Seu Pitch Inicial', type: 'textarea', placeholder: 'Cole aqui como você começa a ligação...' },
                     { id: 'difficulty', label: 'Nível de Dificuldade', type: 'select', options: ['Fácil (Curioso)', 'Médio (Cético)', 'Difícil (Ocupado/Rude)'] }
                 ]
             },
-            
+
             // --- Closer Tools ---
-            { 
-                id: 'closer_warroom', modules: ['closer'], name: 'Deal War Room', icon: 'users', color: 'indigo', emoji: '🏛️', desc: 'Simulação Multi-Agente', 
+            {
+                id: 'closer_warroom', modules: ['closer'], name: 'Deal War Room', icon: 'users', color: 'indigo', emoji: '🏛️', desc: 'Simulação Multi-Agente',
                 prompt: 'Simule um diálogo privado (formato script) entre os C-Levels da empresa sobre a compra.',
                 fields: [
                     { id: 'company', label: 'Empresa', type: 'text', placeholder: 'Ex: Enterprise Co.' },
@@ -479,13 +509,13 @@
                     { id: 'stakeholders', label: 'Envolvidos', type: 'text', placeholder: 'Ex: CEO, CFO, CTO' }
                 ]
             },
-            { 
-                id: 'roleplay_cfo', modules: ['closer'], name: 'Roleplay: CFO Cético', icon: 'user-x', color: 'red', emoji: '😤', desc: 'Negociação Tensa', isChat: true, 
-                persona: 'Um CFO analítico, focado exclusivamente em EBITDA e redução de custos. Você odeia risco. Questione cada centavo.', 
-                firstMsg: 'Tenho exatos 5 minutos. Me dê um motivo financeiro para não vetar esse projeto agora.' 
+            {
+                id: 'roleplay_cfo', modules: ['closer'], name: 'Roleplay: CFO Cético', icon: 'user-x', color: 'red', emoji: '😤', desc: 'Negociação Tensa', isChat: true,
+                persona: 'Um CFO analítico, focado exclusivamente em EBITDA e redução de custos. Você odeia risco. Questione cada centavo.',
+                firstMsg: 'Tenho exatos 5 minutos. Me dê um motivo financeiro para não vetar esse projeto agora.'
             },
-            { 
-                id: 'close_email', modules: ['closer'], name: 'Email Closer', icon: 'mail-check', color: 'sky', emoji: '📧', desc: 'Respostas Finais', 
+            {
+                id: 'close_email', modules: ['closer'], name: 'Email Closer', icon: 'mail-check', color: 'sky', emoji: '📧', desc: 'Respostas Finais',
                 prompt: 'Escreva um e-mail de fechamento decisivo.',
                 fields: [
                     { id: 'situation', label: 'Situação Atual', type: 'textarea', placeholder: 'Ex: Cliente pediu desconto e parou de responder...' },
@@ -494,8 +524,8 @@
             },
 
             // --- Visual & Creative (All Modules) ---
-            { 
-                id: 'gen_persona', modules: ['bdr', 'sdr', 'closer'], name: 'Visual Persona', icon: 'image', color: 'cyan', emoji: '👤', desc: 'Retrato ICP', 
+            {
+                id: 'gen_persona', modules: ['bdr', 'sdr', 'closer'], name: 'Visual Persona', icon: 'image', color: 'cyan', emoji: '👤', desc: 'Retrato ICP',
                 prompt: 'Gere um retrato fotorealista profissional de estúdio.', acceptsImage: false, isImage: true,
                 fields: [
                     { id: 'job', label: 'Cargo', type: 'text', placeholder: 'Ex: CEO de Startup' },
@@ -526,54 +556,89 @@
                 sdr: { text: 'SDR Hunter', color: 'rose' },
                 closer: { text: 'Closer Elite', color: 'amber' }
             };
-            
+
             const badge = document.getElementById('module-badge');
             const sub = document.getElementById('header-sub');
             const logo = document.getElementById('header-logo-bg');
             const chatMode = document.getElementById('chat-mode-text');
             const chatHeader = document.getElementById('chat-header');
-            
+
             if(badge) badge.innerText = themes[mode].text;
             if(sub) sub.innerText = themes[mode].text;
             if(chatMode) chatMode.innerText = themes[mode].text;
 
             let grad = 'from-brand-primary to-purple-600';
             let chatGrad = 'from-brand-primary to-indigo-600';
-            
+
             if (mode === 'sdr') { grad = 'from-rose-500 to-orange-600'; chatGrad = 'from-rose-500 to-orange-600'; }
             if (mode === 'closer') { grad = 'from-amber-500 to-yellow-600'; chatGrad = 'from-amber-500 to-yellow-600'; }
-            
+
             if(logo) logo.className = `w-10 h-10 bg-gradient-to-br ${grad} rounded-full flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform duration-300`;
             if(chatHeader) chatHeader.className = `p-4 bg-gradient-to-r ${chatGrad} text-white flex justify-between items-center`;
         }
 
-        function renderGrid(mode) {
+                function renderGrid(mode) {
             const grid = document.getElementById('tool-grid');
-            const filtered = masterTools.filter(t => t.modules.includes(mode));
-            
-            grid.innerHTML = filtered.map((t, index) => `
+            const searchInput = document.getElementById('tool-search');
+            const term = searchInput ? searchInput.value.toLowerCase() : '';
+
+            let filtered = masterTools.filter(t => t.modules.includes(mode));
+
+            // Favorites Filter (Optional - could add a toggle later)
+            // For now just render icons.
+
+            const favs = JSON.parse(localStorage.getItem('bh_favorites') || '[]');
+
+            if (term) {
+                filtered = filtered.filter(t =>
+                    t.name.toLowerCase().includes(term) ||
+                    t.desc.toLowerCase().includes(term)
+                );
+            }
+
+            grid.innerHTML = filtered.map((t, index) => {
+                const isFav = favs.includes(t.id);
+                const starClass = isFav ? "fill-yellow-400 text-yellow-400" : "text-slate-400 hover:text-yellow-400";
+
+                return `
                 <div onclick="openTool('${t.id}')" class="tool-card relative p-2.5 rounded-xl glass cursor-pointer group overflow-hidden hover:bg-white/5 transition-colors border border-transparent hover:border-${t.color}-500/20 shadow-sm hover:shadow-md" style="animation-delay: ${index * 0.05}s">
+                    <button onclick="event.stopPropagation(); toggleFavorite('${t.id}')" class="absolute top-2 right-2 z-20 p-1.5 rounded-full hover:bg-white/10 transition-colors group/star">
+                        <i data-lucide="star" class="w-3.5 h-3.5 ${starClass} transition-colors"></i>
+                    </button>
+
                     <div class="absolute -right-3 -bottom-3 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500 pointer-events-none">
                         <i data-lucide="${t.icon}" class="w-12 h-12 text-${t.color}-500"></i>
                     </div>
-                    
+
                     <div class="flex items-start gap-2 relative z-10">
-                        <div class="w-7 h-7 rounded-md bg-${t.color}-500/10 flex items-center justify-center group-hover:bg-${t.color}-500 group-hover:text-white transition-all duration-200 shadow-sm flex-shrink-0 mt-0.5">
-                            <i data-lucide="${t.icon}" class="text-${t.color}-500 w-3.5 h-3.5 group-hover:text-white transition-colors"></i>
+                        <div class="w-8 h-8 rounded-lg bg-${t.color}-500/10 text-${t.color}-500 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <span class="text-base">${t.emoji}</span>
                         </div>
-                        
                         <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-0.5">
-                                <h3 class="text-[11px] font-black text-slate-800 dark:text-white leading-none group-hover:text-${t.color}-400 transition-colors uppercase tracking-tight truncate">${t.name}</h3>
-                                <span class="text-[9px] filter grayscale group-hover:grayscale-0 transition-all opacity-70 group-hover:opacity-100 transform">${t.emoji}</span>
-                            </div>
-                            <p class="text-[9px] text-slate-500 dark:text-slate-400 font-medium leading-3 opacity-80 line-clamp-2">${t.desc}</p>
+                            <h3 class="text-[11px] font-black uppercase tracking-tight leading-tight mb-0.5 text-slate-700 dark:text-slate-200 group-hover:text-white transition-colors truncate">${t.name}</h3>
+                            <p class="text-[9px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2 leading-3 h-6">${t.desc}</p>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+
             lucide.createIcons();
         }
+
+        function toggleFavorite(id) {
+            const favs = JSON.parse(localStorage.getItem('bh_favorites') || '[]');
+            if (favs.includes(id)) {
+                const idx = favs.indexOf(id);
+                favs.splice(idx, 1);
+            } else {
+                favs.push(id);
+            }
+            localStorage.setItem('bh_favorites', JSON.stringify(favs));
+            // Re-render only if we are in grid view? Yes.
+            // We need to know current module. 'currentModule' is global.
+            renderGrid(currentModule);
+        }
+
 
         function showView(id) {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('view-active'));
@@ -584,12 +649,23 @@
             }
         }
 
+        function closeTool() {
+            showView('grid');
+        }
+
         function openTool(id) {
             const tool = masterTools.find(t => t.id === id);
             const container = document.getElementById('tool-container');
-            
+
+            if (tool.type === 'widget') {
+                renderWidget(container, tool);
+                lucide.createIcons();
+                showView('tool');
+                return;
+            }
+
             if(tool.isChat) {
-                roleplayHistory[id] = []; 
+                roleplayHistory[id] = [];
                 renderChatInterface(container, tool);
             } else {
                 renderStandardInterface(container, tool);
@@ -598,9 +674,277 @@
             showView('tool');
         }
 
-        function renderStandardInterface(container, tool) {
+
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showError(title, msg) {
+            const modal = document.getElementById('error-modal');
+            document.getElementById('error-title').innerText = title;
+            document.getElementById('error-msg').innerText = msg;
+
+            modal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before opacity transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeError() {
+            const modal = document.getElementById('error-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+
+        function exportHistoryCSV() {
+            try {
+                // Get all history keys
+                // Actually roleplayHistory is in memory.
+                // But we want to export persistent history if we have it.
+                // The history viewer used Firestore? Or local roleplayHistory?
+                // The prompt says "Histórico Viewer (Firestore integration)".
+                // So history is in Firestore.
+                // We can't easily export ALL Firestore data without fetching it.
+                // But loadHistory() fetches it.
+                // Let's assume we export what is currently loaded or we fetch it.
+
+                // For simplicity, let's export the `roleplayHistory` object (session history) AND maybe trigger a fetch for Firestore.
+                // "roleplayHistory" var tracks session.
+
+                // Let's implement a simple export of the `roleplayHistory` global var for now,
+                // OR better, export the data displayed in the "History" view if possible.
+                // The history view populates `#history-list`.
+
+                // Let's create a CSV from `roleplayHistory` global first.
+
+                const rows = [['Tool ID', 'Timestamp', 'User', 'Assistant']];
+
+                Object.keys(roleplayHistory).forEach(toolId => {
+                    roleplayHistory[toolId].forEach(msg => {
+                        rows.push([toolId, new Date().toISOString(), msg.role, `"${msg.content.replace(/"/g, '""')}"`]);
+                    });
+                });
+
+                let csvContent = "data:text/csv;charset=utf-8,"
+                    + rows.map(e => e.join(",")).join("\n");
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "sales_os_history.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch(e) {
+                showError('Erro no Export', e.message);
+            }
+        }
+
+        // --- WIDGET LOGIC ---
+        function renderWidget(container, tool) {
+            let content = '';
+
+            if (tool.widgetType === 'scratchpad') {
+                const saved = localStorage.getItem('bh_scratchpad') || '';
+                content = `
+                    <div class="flex flex-col h-full">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                            <i data-lucide="${tool.icon}" class="text-${tool.color}-500"></i> ${tool.name}
+                        </h2>
+                        <textarea id="scratchpad-area" class="flex-1 w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm outline-none focus:border-indigo-500 resize-none font-mono text-slate-800 dark:text-slate-300 mb-4" placeholder="Digite suas notas aqui...">${escapeHtml(saved)}</textarea>
+                        <div class="flex justify-end">
+                            <button onclick="saveScratchpad()" class="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl text-xs font-bold text-white transition-all shadow-lg hover:shadow-indigo-500/25">SALVAR NOTAS</button>
+                        </div>
+                    </div>`;
+            }
+            else if (tool.widgetType === 'goals') {
+                content = renderGoalTracker();
+            }
+            else if (tool.widgetType === 'calculator') {
+                content = renderCalculator();
+            }
+
+            container.innerHTML = `
+                <div class="bg-white dark:bg-[#1a1b26] border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 md:p-8 shadow-2xl h-full flex flex-col relative overflow-hidden animate-in fade-in zoom-in duration-300">
+                    <button onclick="closeTool()" class="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-red-400 transition-colors z-10">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                    ${content}
+                </div>`;
+
+            // Post-render init
+            if(tool.widgetType === 'goals') refreshGoalList();
+        }
+
+        function saveScratchpad() {
+            const val = document.getElementById('scratchpad-area').value;
+            localStorage.setItem('bh_scratchpad', val);
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'SALVO!';
+            btn.classList.add('bg-green-500');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('bg-green-500');
+            }, 1500);
+        }
+
+        // -- GOAL TRACKER --
+        function renderGoalTracker() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="target" class="text-emerald-500"></i> Metas
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="goal-input" placeholder="Nova meta..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addGoal()">
+                        <button onclick="addGoal()" class="p-2 bg-emerald-500 hover:bg-emerald-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="goal-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        <!-- Goals rendered here -->
+                    </div>
+                </div>`;
+        }
+
+        function getGoals() {
+            return JSON.parse(localStorage.getItem('bh_goals') || '[]');
+        }
+
+        function addGoal() {
+            const input = document.getElementById('goal-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const goals = getGoals();
+            goals.push({ id: Date.now(), text, done: false });
+            localStorage.setItem('bh_goals', JSON.stringify(goals));
+            input.value = '';
+            refreshGoalList();
+        }
+
+        function toggleGoal(id) {
+            const goals = getGoals();
+            const idx = goals.findIndex(g => g.id === id);
+            if(idx > -1) {
+                goals[idx].done = !goals[idx].done;
+                localStorage.setItem('bh_goals', JSON.stringify(goals));
+                refreshGoalList();
+            }
+        }
+
+        function deleteGoal(id) {
+            let goals = getGoals();
+            goals = goals.filter(g => g.id !== id);
+            localStorage.setItem('bh_goals', JSON.stringify(goals));
+            refreshGoalList();
+        }
+
+        function refreshGoalList() {
+            const list = document.getElementById('goal-list');
+            if(!list) return;
+            const goals = getGoals();
+
+            if(goals.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400 text-sm mt-10">Nenhuma meta definida.</p>';
+                return;
+            }
+
+            list.innerHTML = goals.map(g => `
+                <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 ${g.done ? 'bg-emerald-500/10 opacity-60' : 'bg-slate-50 dark:bg-white/5'} transition-all group">
+                    <button onclick="toggleGoal(${g.id})" class="w-5 h-5 rounded border ${g.done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-400'} flex items-center justify-center transition-all">
+                        ${g.done ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
+                    </button>
+                    <span class="flex-1 text-sm ${g.done ? 'line-through text-slate-500' : 'text-slate-700 dark:text-slate-200'}">${escapeHtml(g.text)}</span>
+                    <button onclick="deleteGoal(${g.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // -- CALCULATOR --
+        function renderCalculator() {
+            return `
+                <div class="flex flex-col h-full max-w-sm mx-auto w-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="calculator" class="text-orange-500"></i> Calculadora
+                    </h2>
+                    <div class="bg-slate-100 dark:bg-black/30 rounded-2xl p-4 mb-4 text-right">
+                        <div id="calc-display" class="text-3xl font-mono text-slate-800 dark:text-white font-bold truncate">0</div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 flex-1">
+                        <button onclick="calcInput('C')" class="col-span-1 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-all">C</button>
+                        <button onclick="calcInput('(')" class="bg-slate-200 dark:bg-white/5 hover:bg-white/10 rounded-xl font-bold dark:text-white text-slate-700">((</button>
+                        <button onclick="calcInput(')')" class="bg-slate-200 dark:bg-white/5 hover:bg-white/10 rounded-xl font-bold dark:text-white text-slate-700">)</button>
+                        <button onclick="calcInput('/')" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white rounded-xl font-bold">÷</button>
+
+                        <button onclick="calcInput('7')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">7</button>
+                        <button onclick="calcInput('8')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">8</button>
+                        <button onclick="calcInput('9')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">9</button>
+                        <button onclick="calcInput('*')" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white rounded-xl font-bold">×</button>
+
+                        <button onclick="calcInput('4')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">4</button>
+                        <button onclick="calcInput('5')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">5</button>
+                        <button onclick="calcInput('6')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">6</button>
+                        <button onclick="calcInput('-')" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white rounded-xl font-bold">-</button>
+
+                        <button onclick="calcInput('1')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">1</button>
+                        <button onclick="calcInput('2')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">2</button>
+                        <button onclick="calcInput('3')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">3</button>
+                        <button onclick="calcInput('+')" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white rounded-xl font-bold">+</button>
+
+                        <button onclick="calcInput('0')" class="col-span-2 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">0</button>
+                        <button onclick="calcInput('.')" class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl font-bold text-lg dark:text-white text-slate-700 shadow-sm">.</button>
+                        <button onclick="calcResult()" class="bg-orange-500 text-white hover:bg-orange-600 rounded-xl font-bold shadow-lg shadow-orange-500/25">=</button>
+                    </div>
+                </div>`;
+        }
+
+        let calcExpr = '';
+        function calcInput(val) {
+            if(val === 'C') {
+                calcExpr = '';
+            } else {
+                calcExpr += val;
+            }
+            document.getElementById('calc-display').innerText = calcExpr || '0';
+        }
+        function calcResult() {
+            try {
+                // simple safe eval replacement or just eval for local tool
+                // Using Function to avoid direct eval scope issues, though similar risk.
+                // For a simple calculator tool in a sandbox, eval is acceptable if input is controlled.
+                // But let's sanitise.
+                const safeExpr = calcExpr.replace(/[^0-9+\-*/().]/g, '');
+                const res = new Function('return ' + safeExpr)();
+                calcExpr = String(res);
+                document.getElementById('calc-display').innerText = calcExpr;
+            } catch(e) {
+                document.getElementById('calc-display').innerText = 'Err';
+                calcExpr = '';
+            }
+        }
+
+function renderStandardInterface(container, tool) {
             const showUpload = tool.acceptsImage ? '' : 'hidden';
-            
+
             // Build Dynamic Fields
             let fieldsHTML = '';
             if (tool.fields) {
@@ -653,7 +997,7 @@
 
                         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
                             ${fieldsHTML}
-                            
+
                             <div class="${showUpload} mt-2">
                                 <label class="flex items-center gap-2 cursor-pointer w-full justify-center px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-dashed border-white/20 transition-all hover:border-${tool.color}-500/50">
                                     <i data-lucide="image-plus" class="w-4 h-4 text-${tool.color}-400"></i>
@@ -662,7 +1006,7 @@
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div class="mt-6 pt-4 border-t border-white/5 shrink-0">
                             <button onclick="runIA('${tool.id}')" id="exec-btn" class="w-full py-3.5 bg-gradient-to-r from-${tool.color}-500 to-${tool.color}-600 rounded-xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 text-white shadow-lg shadow-${tool.color}-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all group overflow-hidden relative">
                                 <span class="relative z-10">Gerar Estratégia</span>
@@ -671,7 +1015,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- OUTPUT -->
                 <div class="lg:col-span-7 flex flex-col h-full min-h-[500px]">
                     <div class="glass flex-1 p-6 md:p-8 rounded-[2.5rem] shadow-2xl relative flex flex-col border border-white/10 animate-[popIn_0.6s_ease-out]">
@@ -695,7 +1039,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div id="t-output" class="flex-1 text-sm leading-relaxed dark:text-slate-200 text-slate-700 custom-scrollbar overflow-y-auto whitespace-pre-wrap font-medium p-1 relative">
                             <div class="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-4">
                                 <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
@@ -763,9 +1107,9 @@
             const output = document.getElementById('t-output');
             const currentText = output.innerText;
             if(!currentText || currentText.includes("Aguardando")) return;
-            
+
             output.innerHTML = `<div class="flex items-center justify-center h-full opacity-50"><div class="loader-spinner"></div></div>`;
-            
+
             let prompt = "";
             if (action === 'shorter') prompt = "Resuma o texto abaixo mantendo os pontos chave. Seja extremamente conciso e direto ao ponto:";
             if (action === 'formal') prompt = "Reescreva o texto abaixo com um tom executivo, formal e altamente profissional:";
@@ -787,7 +1131,7 @@
             const btn = document.getElementById('exec-btn');
             const magicActions = document.getElementById('magic-actions');
             const fileInput = document.getElementById('t-file');
-            
+
             // Collect Form Data
             let collectedData = "";
             let isEmpty = true;
@@ -810,14 +1154,14 @@
                     isEmpty = false;
                 }
             }
-            
+
             if(isEmpty && (!fileInput || !fileInput.files.length) && !tool.isImage) return;
 
             if(magicActions) magicActions.classList.add('hidden');
             btn.disabled = true;
             const originalBtn = btn.innerHTML;
             btn.innerHTML = `<div class="loader-spinner"></div>`;
-            
+
             output.innerHTML = `
                 <div class="h-full flex flex-col items-center justify-center gap-4 animate-pulse">
                     <div class="relative">
@@ -842,18 +1186,18 @@
                 } else {
                     // Text Generation (Gemini 2.5) with Multimodal support
                     const parts = [{ text: `Você é uma IA de elite especializada em vendas (${currentModule.toUpperCase()}).
-                    
+
                     INSTRUÇÕES MESTRAS:
                     1. Aja como um especialista sênior.
                     2. Seja direto, evite "fluff" ou introduções longas.
                     3. Use formatação Markdown (negrito, listas) para legibilidade.
                     4. ${tool.prompt}
-                    
+
                     DADOS DE ENTRADA:
                     ${collectedData}
-                    
+
                     Resposta:` }];
-                    
+
                     if (tool.acceptsImage && fileInput && fileInput.files.length > 0) {
                         const base64Data = await fileToGenerativePart(fileInput.files[0]);
                         parts.push(base64Data);
@@ -864,17 +1208,17 @@
                         generationConfig: { temperature: 0.7 }
                     };
                     if (tool.useSearch) payload.tools = [{ "google_search": {} }];
-                    
+
                     const result = await fetchWithRetry(endpoints.text, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    
+
                     const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro de processamento.";
                     output.innerText = text;
                     if(magicActions) magicActions.classList.remove('hidden');
-                    
+
                     if (id.includes('coldcall') || id.includes('reverser')) speakResult(text);
                 }
             } catch (e) {
@@ -891,7 +1235,7 @@
             const input = document.getElementById('roleplay-input');
             const msgs = document.getElementById('roleplay-messages');
             if(!input.value) return;
-            
+
             const userText = input.value;
             input.value = '';
 
@@ -907,7 +1251,7 @@
             msgs.scrollTop = msgs.scrollHeight;
 
             if (!roleplayHistory[toolId]) roleplayHistory[toolId] = [];
-            
+
             const historyPrompt = roleplayHistory[toolId].map(m => `${m.role}: ${m.text}`).join('\n');
             const fullPrompt = `Roleplay Context: Você é ${tool.persona}.\nHistórico da conversa:\n${historyPrompt}\nO usuário (Vendedor) disse: "${userText}".\nResponda como a persona. Seja curto (máx 3 frases). Mantenha a personagem difícil.`;
 
@@ -918,7 +1262,7 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
                 });
                 const aiText = res.candidates?.[0]?.content?.parts?.[0]?.text;
-                
+
                 roleplayHistory[toolId].push({ role: 'Vendedor', text: userText });
                 roleplayHistory[toolId].push({ role: 'Persona', text: aiText });
 
@@ -981,7 +1325,7 @@
                 new Audio(URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }))).play();
             } catch (e) {}
         }
-        
+
         function pcmToWav(pcmBase64) {
             const pcm = atob(pcmBase64);
             const buffer = new ArrayBuffer(44 + pcm.length);
@@ -1004,7 +1348,7 @@
             msgs.innerHTML += `<div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]">${text}</div>`;
             input.value = "";
             msgs.scrollTop = msgs.scrollHeight;
-            
+
             try {
                 const res = await fetchWithRetry(endpoints.text, {
                     method: 'POST',
@@ -1077,13 +1421,24 @@
         function toggleTheme() {
             const isDark = document.documentElement.classList.toggle('dark');
             document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+            localStorage.setItem('bh_theme', isDark ? 'dark' : 'light');
             lucide.createIcons();
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => console.log(e));
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
         }
 
         function toggleChat() {
             document.getElementById('chat-window').classList.toggle('hidden');
         }
-        
+
         function updateClock() {
             const now = new Date();
             const timeEl = document.getElementById('header-time');
@@ -1091,7 +1446,7 @@
             if (timeEl) timeEl.innerText = now.toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
             if (dateEl) dateEl.innerText = now.toLocaleDateString('pt-PT');
         }
-        
+
         function startGlobalVoice() {
             if (!('webkitSpeechRecognition' in window)) return showToast("Sem suporte a voz.");
             const recognition = new webkitSpeechRecognition();
@@ -1110,7 +1465,7 @@
             if (!('webkitSpeechRecognition' in window)) return showToast("Sem suporte a voz.");
             const recognition = new webkitSpeechRecognition();
             recognition.lang = 'pt-BR';
-            const btn = document.querySelector('#roleplay-input').previousElementSibling; 
+            const btn = document.querySelector('#roleplay-input').previousElementSibling;
             btn.classList.add('animate-pulse', 'bg-red-600');
             recognition.onresult = (e) => {
                 const active = document.getElementById('roleplay-input');
@@ -1171,6 +1526,39 @@
         const greeting = document.getElementById('greeting-text');
         if(greeting) greeting.innerText = `${window.userName} ONLINE`;
 
+        // Theme Persistence
+        const savedTheme = localStorage.getItem('bh_theme');
+        if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+            const themeIcon = document.getElementById('theme-icon');
+            if(themeIcon) themeIcon.setAttribute('data-lucide', 'sun');
+        }
+
+        // Shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Alt+H: Home
+            if (e.altKey && e.key.toLowerCase() === 'h') {
+                e.preventDefault();
+                goHome();
+            }
+            // Alt+S: Settings
+            if (e.altKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                toggleSettings();
+            }
+            // Alt+F: Focus Search or Toggle Fullscreen
+            if (e.altKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                const search = document.getElementById('tool-search');
+                const gridView = document.getElementById('view-grid');
+                if (search && gridView && gridView.classList.contains('view-active')) {
+                    search.focus();
+                } else {
+                    toggleFullscreen();
+                }
+            }
+        });
+
         setInterval(updateClock, 1000);
         updateClock();
         lucide.createIcons();
@@ -1218,5 +1606,20 @@
         </div>
     </div>
     <script>lucide.createIcons();</script>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="fixed inset-0 z-[400] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="w-[90%] max-w-sm bg-white dark:bg-[#1a1b26] border border-red-500/20 rounded-2xl p-6 shadow-2xl scale-95 transition-transform duration-300 relative">
+            <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4 mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-500"></i>
+            </div>
+            <h3 class="text-lg font-bold text-center text-slate-800 dark:text-white mb-2" id="error-title">Erro</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 text-center mb-6" id="error-msg">Ocorreu um erro inesperado.</p>
+            <button onclick="closeError()" class="w-full py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition-all">
+                Entendi
+            </button>
+        </div>
+    </div>
+
 </body>
 </html>

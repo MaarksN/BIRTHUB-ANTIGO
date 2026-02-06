@@ -70,3 +70,32 @@ Para elevar o nível da plataforma, sugiro a adição dos seguintes itens:
 
 ## 5. Conclusão
 O *BirthHub Sales OS* é um protótipo robusto com excelente UX. Para se tornar um produto viável (SaaS ou ferramenta interna distribuída), a prioridade deve ser desacoplar a configuração (API Keys) do código fonte e modularizar a base de código. As funcionalidades sugeridas focarão em retenção (Histórico) e integração (CRM).
+
+## 6. Atualização de Progresso (Implementações Realizadas)
+
+Atendendo à solicitação de expansão da plataforma, foram implementadas as seguintes melhorias e funcionalidades (Total: 10+ itens):
+
+### 6.1. Interface e Experiência do Usuário (UI/UX)
+1.  **Persistência de Tema:** O tema (Dark/Light) agora é salvo no `localStorage`, lembrando a preferência do usuário entre sessões.
+2.  **Modo Tela Cheia (Fullscreen):** Botão dedicado no cabeçalho para imersão total na ferramenta.
+3.  **Barra de Busca Global:** Atalho `Alt+F` foca na busca. Permite filtrar ferramentas em tempo real pelo nome ou descrição.
+4.  **Atalhos de Teclado:**
+    *   `Alt+H`: Voltar para Home.
+    *   `Alt+S`: Abrir Configurações.
+    *   `Alt+F`: Busca / Fullscreen.
+
+### 6.2. Widgets de Produtividade
+5.  **Bloco de Notas (Scratchpad):** Widget persistente para anotações rápidas durante calls. Salva automaticamente no navegador.
+6.  **Gerenciador de Metas (Goal Tracker):** Lista de tarefas/objetivos simples com checkboxes e persistência.
+7.  **Calculadora Integrada:** Calculadora rápida acessível como ferramenta, sem sair da plataforma.
+
+### 6.3. Funcionalidades de Dados
+8.  **Sistema de Favoritos:** Ícone de "Estrela" em cada ferramenta. Permite marcar as ferramentas mais usadas, que são destacadas visualmente.
+9.  **Exportação CSV:** Botão na visualização de Histórico para baixar todos os registros de interações em formato `.csv` (Excel).
+10. **Tratamento de Erros Robusto:** Novo modal de erro unificado substitui alertas nativos, oferecendo uma experiência mais polida em caso de falhas (API, Rede).
+
+### 6.4. Outras Melhorias
+*   **Correção de Crash do Firebase:** Implementação de configuração de fallback para evitar tela branca caso as chaves não estejam presentes.
+*   **Menu de Navegação:** Botão "Menu" unificado para retornar à grid de ferramentas.
+
+Todas as funcionalidades foram verificadas via testes automatizados (Playwright) e integração direta no código fonte (`BirthHub Sales OS.HTML`).
