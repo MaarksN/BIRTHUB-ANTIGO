@@ -6,8 +6,754 @@
     <title>BirthHub 360º Sales OS 🚀</title>
 
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUPLICATE REMOVED: // DUP let pomodoroInterval;
+        // DUPLICATE REMOVED: // DUP let pomodoroTime = 25 * 60;
+        // DUPLICATE REMOVED: // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUPLICATE REMOVED: // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUP let pomodoroInterval;
+        // DUP let pomodoroTime = 25 * 60;
+        // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
+    </script>
 
     <!-- Firebase SDKs -->
     <script type="module">
@@ -145,6 +891,379 @@
              const output = document.getElementById('t-output');
              output.innerText = content;
         };
+
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUP let pomodoroInterval;
+        // DUP let pomodoroTime = 25 * 60;
+        // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
     </script>
 
     <script>
@@ -176,10 +1295,756 @@
                 }
             }
         }
+
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUP let pomodoroInterval;
+        // DUP let pomodoroTime = 25 * 60;
+        // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest">
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUP let pomodoroInterval;
+        // DUP let pomodoroTime = 25 * 60;
+        // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
+    </script>
 
     <style>
         :root { --font-main: 'Plus Jakarta Sans', sans-serif; --font-head: 'Outfit', sans-serif; }
@@ -215,7 +2080,19 @@
 
         input, textarea, select { transition: all 0.2s ease; }
         input:focus, textarea:focus, select:focus { transform: translateY(-1px); }
-    </style>
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+</style>
 </head>
 <body class="min-h-screen pb-12 selection:bg-brand-primary selection:text-white">
 
@@ -434,6 +2311,11 @@
 
         // MASTER TOOL LIST - COM CAMPOS APRIMORADOS PARA GEMINI 2.5
         const masterTools = [
+            { id: 'widget_pomodoro', type: 'widget', widgetType: 'pomodoro', modules: ['hub', 'sdr', 'closer'], name: 'Pomodoro', icon: 'clock', color: 'red', emoji: '🍅', desc: 'Timer de Foco' },
+            { id: 'widget_worldclock', type: 'widget', widgetType: 'worldclock', modules: ['hub', 'bdr'], name: 'Fuso Horário', icon: 'globe', color: 'blue', emoji: '🌍', desc: 'Relógio Mundial' },
+            { id: 'widget_counter', type: 'widget', widgetType: 'counter', modules: ['sdr', 'closer'], name: 'Contador de Objeções', icon: 'trello', color: 'purple', emoji: '🔢', desc: 'Tracking de ' },
+            { id: 'widget_links', type: 'widget', widgetType: 'links', modules: ['hub'], name: 'Links Rápidos', icon: 'link', color: 'cyan', emoji: '🔗', desc: 'Favoritos' },
+            { id: 'widget_affirmation', type: 'widget', widgetType: 'affirmation', modules: ['hub', 'leader'], name: 'Motivação Diária', icon: 'sun', color: 'yellow', emoji: '☀️', desc: 'Citações' },
             // --- Productivity Widgets ---
             { id: 'widget_scratchpad', type: 'widget', widgetType: 'scratchpad', modules: ['hub', 'bdr', 'sdr', 'closer', 'leader'], name: 'Bloco de Notas', icon: 'file-text', color: 'slate', emoji: '📝', desc: 'Anotações Rápidas' },
             { id: 'widget_goals', type: 'widget', widgetType: 'goals', modules: ['hub', 'leader'], name: 'Metas', icon: 'target', color: 'emerald', emoji: '🎯', desc: 'Tracking de Objetivos' },
@@ -533,7 +2415,37 @@
                     { id: 'vibe', label: 'Ambiente/Vibe', type: 'text', placeholder: 'Ex: Escritório moderno, confiante' }
                 ]
             }
-        ];
+        ,
+            { id: 'sdr_cold_email_aida', modules: ['sdr'], name: 'Cold Email AIDA', icon: 'mail', color: 'blue', emoji: '📧', desc: 'Email Frio Clássico', prompt: 'Escreva um cold email usando a estrutura AIDA (Atenção, Interesse, Desejo, Ação) para o prospect.' },
+            { id: 'sdr_linkedin_connect', modules: ['sdr'], name: 'LinkedIn Connect', icon: 'linkedin', color: 'blue', emoji: '🔗', desc: 'Pedido de Conexão', prompt: 'Crie 3 variações de nota de conexão no LinkedIn (max 300 chars) que sejam personalizadas e não vendas.' },
+            { id: 'sdr_gatekeeper', modules: ['sdr'], name: 'Gatekeeper Script', icon: 'shield', color: 'slate', emoji: '🛡️', desc: 'Passar pela Secretária', prompt: 'Crie um script para passar pelo Gatekeeper (secretária/recepção) com autoridade e empatia.' },
+            { id: 'sdr_voicemail', modules: ['sdr'], name: 'Voicemail Matador', icon: 'voicemail', color: 'orange', emoji: '➿', desc: 'Script de Caixa Postal', prompt: 'Escreva um script de voicemail de 30 segundos que desperte curiosidade e faça o prospect retornar.' },
+            { id: 'sdr_followup', modules: ['sdr'], name: 'Follow-up Email', icon: 'repeat', color: 'indigo', emoji: '🔁', desc: 'Email de Cobrança', prompt: 'Escreva um email de follow-up gentil para quem não respondeu ao primeiro contato.' },
+            { id: 'sdr_breakup', modules: ['sdr'], name: 'Break-up Email', icon: 'x-circle', color: 'red', emoji: '💔', desc: 'Email de Despedida', prompt: 'Escreva um "Break-up Email" (email de despedida) usando gatilho de aversão à perda.' },
+            { id: 'disc_spin', modules: ['sdr', 'closer'], name: 'SPIN Selling', icon: 'help-circle', color: 'green', emoji: '🌀', desc: 'Perguntas SPIN', prompt: 'Gere perguntas de Situação, Problema, Implicação e Necessidade de Solução para este cenário.' },
+            { id: 'disc_meddic', modules: ['closer'], name: 'MEDDIC Check', icon: 'check-square', color: 'emerald', emoji: '✅', desc: 'Checklist MEDDIC', prompt: 'Analise o cenário e crie perguntas para cobrir: Metrics, Economic Buyer, Decision Criteria, Decision Process, Identify Pain, Champion.' },
+            { id: 'disc_bant', modules: ['sdr', 'closer'], name: 'BANT Qualifier', icon: 'filter', color: 'yellow', emoji: '🏦', desc: 'Budget & Authority', prompt: 'Crie perguntas sutis para qualificar Budget, Authority, Need e Timing sem parecer um interrogatório.' },
+            { id: 'disc_gap', modules: ['closer'], name: 'GAP Selling', icon: 'maximize-2', color: 'purple', emoji: '↔️', desc: 'Análise de Lacunas', prompt: 'Ajude a identificar o Estado Atual vs Estado Futuro e a lacuna (GAP) entre eles.' },
+            { id: 'disc_sandler', modules: ['closer'], name: 'Sandler Pain', icon: 'frown', color: 'pink', emoji: '😖', desc: 'Funil da Dor', prompt: 'Use o Sandler Pain Funnel para aprofundar a dor do cliente com perguntas em camadas.' },
+            { id: 'obj_price', modules: ['closer', 'sdr'], name: 'Objeção: Preço', icon: 'dollar-sign', color: 'red', emoji: '💸', desc: 'Está muito caro', prompt: 'Forneça 3 respostas para a objeção "O preço está alto demais" focado em valor/ROI.' },
+            { id: 'obj_sendinfo', modules: ['sdr'], name: 'Objeção: Me manda info', icon: 'send', color: 'blue', emoji: '📨', desc: 'Manda por email', prompt: 'Como responder a "Me manda uma apresentação por email" para tentar manter a conversa viva?' },
+            { id: 'obj_not_interested', modules: ['sdr'], name: 'Objeção: Sem interesse', icon: 'thumbs-down', color: 'slate', emoji: '😐', desc: 'Não tenho interesse', prompt: 'Como reverter um "Não tenho interesse" logo no início da call?' },
+            { id: 'obj_competitor', modules: ['closer'], name: 'Objeção: Concorrente', icon: 'swords', color: 'orange', emoji: '🆚', desc: 'Uso o concorrente', prompt: 'Como responder a "Já usamos o concorrente X e estamos felizes"?' },
+            { id: 'obj_budget', modules: ['closer'], name: 'Objeção: Sem Budget', icon: 'piggy-bank', color: 'amber', emoji: '📉', desc: 'Não temos verba', prompt: 'Como lidar com "Não temos budget aprovado para este ano"?' },
+            { id: 'close_techniques', modules: ['closer'], name: 'Técnicas de Fechamento', icon: 'check-circle', color: 'green', emoji: '🤝', desc: 'Assumptivo/Alternativo', prompt: 'Sugira 3 técnicas de fechamento (Assumptivo, Ou-Ou, Urgência) para este deal.' },
+            { id: 'close_negotiation', modules: ['closer'], name: 'Script de Negociação', icon: 'briefcase', color: 'slate', emoji: '💼', desc: 'Negociar Termos', prompt: 'Crie um roteiro para negociar termos contratuais mantendo a margem de lucro.' },
+            { id: 'close_roi_calc', modules: ['closer'], name: 'Calculadora de ROI', icon: 'bar-chart-2', color: 'blue', emoji: '📊', desc: 'Pitch de ROI', prompt: 'Escreva um pitch lógico demonstrando o ROI (Retorno sobre Investimento) da solução.' },
+            { id: 'close_urgency', modules: ['closer'], name: 'Criar Urgência', icon: 'clock', color: 'red', emoji: '⏰', desc: 'Gatilhos de Urgência', prompt: 'Escreva 3 argumentos éticos para criar urgência genuína no fechamento.' },
+            { id: 'social_bio', modules: ['bdr'], name: 'Bio Otimizada', icon: 'user', color: 'indigo', emoji: '🤳', desc: 'Bio do LinkedIn', prompt: 'Reescreva esta Bio do LinkedIn para focar em como eu ajudo meus clientes (Customer Centric).' },
+            { id: 'social_comment', modules: ['bdr'], name: 'Comentário Estratégico', icon: 'message-square', color: 'cyan', emoji: '💬', desc: 'Comentar Posts', prompt: 'Escreva um comentário perspicaz para um post de um lead sobre [TEMA] que gere autoridade.' },
+            { id: 'social_article', modules: ['bdr'], name: 'Ideias de Artigos', icon: 'file-text', color: 'pink', emoji: '📰', desc: 'Pauta de Conteúdo', prompt: 'Gere 5 ideias de artigos para LinkedIn focados nas dores do meu ICP.' },
+            { id: 'lead_oneonone', modules: ['leader'], name: 'Pauta 1:1', icon: 'users', color: 'purple', emoji: '🗣️', desc: 'Reunião Individual', prompt: 'Crie uma pauta para reunião 1:1 com um SDR focada em desenvolvimento e métricas.' },
+            { id: 'lead_pipeline', modules: ['leader'], name: 'Pipeline Review', icon: 'layers', color: 'blue', emoji: '📑', desc: 'Revisão de Funil', prompt: 'Quais perguntas um gerente deve fazer ao revisar o pipeline de um vendedor para garantir forecast preciso?' },
+            { id: 'lead_hiring', modules: ['leader'], name: 'Perguntas de Contratação', icon: 'user-plus', color: 'green', emoji: '➕', desc: 'Entrevista de Vendas', prompt: 'Liste 10 perguntas comportamentais para entrevistar um candidato a Closer (Account Executive).' },
+            { id: 'lead_culture', modules: ['leader'], name: 'Cultura de Vendas', icon: 'heart', color: 'red', emoji: '🔥', desc: 'Motivação de Time', prompt: 'Ideias para criar rituais e competições saudáveis para motivar o time de vendas.' },
+            { id: 'cs_onboarding', modules: ['hub'], name: 'Email de Boas-vindas', icon: 'sun', color: 'yellow', emoji: '👋', desc: 'Onboarding Cliente', prompt: 'Escreva um email de boas-vindas caloroso explicando os próximos passos do onboarding.' },
+            { id: 'cs_upsell', modules: ['hub', 'closer'], name: 'Script de Upsell', icon: 'trending-up', color: 'emerald', emoji: '📈', desc: 'Expandir Conta', prompt: 'Como oferecer um upgrade de plano para um cliente satisfeito? Crie um script.' },
+            { id: 'cs_churn', modules: ['hub'], name: 'Reversão de Churn', icon: 'alert-octagon', color: 'red', emoji: '🛑', desc: 'Evitar Cancelamento', prompt: 'Script para tentar reverter um cliente que pediu cancelamento.' }];
 
         // LOGIC
         function goHome() {
@@ -757,7 +2669,7 @@
         }
 
         // --- WIDGET LOGIC ---
-        function renderWidget(container, tool) {
+                function renderWidget(container, tool) {
             let content = '';
 
             if (tool.widgetType === 'scratchpad') {
@@ -773,12 +2685,13 @@
                         </div>
                     </div>`;
             }
-            else if (tool.widgetType === 'goals') {
-                content = renderGoalTracker();
-            }
-            else if (tool.widgetType === 'calculator') {
-                content = renderCalculator();
-            }
+            else if (tool.widgetType === 'goals') { content = renderGoalTracker(); }
+            else if (tool.widgetType === 'calculator') { content = renderCalculator(); }
+            else if (tool.widgetType === 'pomodoro') { content = renderPomodoro(); }
+            else if (tool.widgetType === 'worldclock') { content = renderWorldClock(); }
+            else if (tool.widgetType === 'counter') { content = renderObjectionCounter(); }
+            else if (tool.widgetType === 'links') { content = renderQuickLinks(); }
+            else if (tool.widgetType === 'affirmation') { content = renderAffirmation(); }
 
             container.innerHTML = `
                 <div class="bg-white dark:bg-[#1a1b26] border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 md:p-8 shadow-2xl h-full flex flex-col relative overflow-hidden animate-in fade-in zoom-in duration-300">
@@ -790,6 +2703,9 @@
 
             // Post-render init
             if(tool.widgetType === 'goals') refreshGoalList();
+            if(tool.widgetType === 'worldclock') startWorldClock();
+            if(tool.widgetType === 'counter') refreshObjections();
+            if(tool.widgetType === 'links') refreshLinks();
         }
 
         function saveScratchpad() {
@@ -1505,6 +3421,8 @@ function renderStandardInterface(container, tool) {
                 localStorage.setItem('bh_username', window.userName);
                 const greeting = document.getElementById('greeting-text');
                 if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
             }
 
             if(newKey) {
@@ -1525,6 +3443,8 @@ function renderStandardInterface(container, tool) {
         // Init user name
         const greeting = document.getElementById('greeting-text');
         if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
 
         // Theme Persistence
         const savedTheme = localStorage.getItem('bh_theme');
@@ -1562,6 +3482,379 @@ function renderStandardInterface(container, tool) {
         setInterval(updateClock, 1000);
         updateClock();
         lucide.createIcons();
+
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        // DUP let pomodoroInterval;
+        // DUP let pomodoroTime = 25 * 60;
+        // DUP let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        // DUP let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
     </script>
 
     <!-- Settings Modal -->
@@ -1596,6 +3889,36 @@ function renderStandardInterface(container, tool) {
                         <i data-lucide="webhook" class="absolute right-4 top-3 w-4 h-4 text-slate-400 opacity-50"></i>
                     </div>
                 </div>
+                <!-- New Settings -->
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-brand-primary uppercase tracking-wider ml-2">Tamanho Fonte</label>
+                        <select id="set-fontsize" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:border-brand-primary/50 dark:text-white text-slate-800 transition-all appearance-none">
+                            <option value="text-sm">Padrão</option>
+                            <option value="text-base">Médio</option>
+                            <option value="text-lg">Grande</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-brand-primary uppercase tracking-wider ml-2">Tom de Voz</label>
+                        <select id="set-tone" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:border-brand-primary/50 dark:text-white text-slate-800 transition-all appearance-none">
+                            <option value="professional">Profissional</option>
+                            <option value="casual">Casual</option>
+                            <option value="enthusiastic">Entusiasta</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-6 border-t border-white/5 pt-4">
+                    <button onclick="exportSettings()" class="flex-1 py-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider transition-all">
+                        <i data-lucide="download" class="w-3 h-3 inline mr-1"></i> Backup Config
+                    </button>
+                    <button onclick="importSettings()" class="flex-1 py-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider transition-all">
+                        <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i> Restaurar
+                    </button>
+                    <input type="file" id="import-file" class="hidden" onchange="processImport(this)">
+                </div>
+
             </div>
 
             <div class="mt-8 pt-4 border-t border-white/5 flex gap-3">
@@ -1605,7 +3928,392 @@ function renderStandardInterface(container, tool) {
             </div>
         </div>
     </div>
-    <script>lucide.createIcons();</script>
+    <script>lucide.createIcons();
+        // --- NEW WIDGETS LOGIC ---
+
+        // POMODORO
+        let pomodoroInterval;
+        let pomodoroTime = 25 * 60;
+        let isPomodoroRunning = false;
+
+        function renderPomodoro() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="clock" class="text-red-500"></i> Pomodoro
+                    </h2>
+                    <div class="text-7xl font-mono font-bold text-slate-800 dark:text-white mb-8" id="pomo-display">
+                        ${formatTime(pomodoroTime)}
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="togglePomodoro()" id="pomo-btn" class="px-8 py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30">
+                            INICIAR
+                        </button>
+                        <button onclick="resetPomodoro()" class="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-2xl text-slate-600 dark:text-white font-bold transition-all">
+                            RESET
+                        </button>
+                    </div>
+                </div>`;
+        }
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if (isPomodoroRunning) {
+                clearInterval(pomodoroInterval);
+                isPomodoroRunning = false;
+                btn.innerText = 'CONTINUAR';
+                btn.classList.replace('bg-orange-500', 'bg-red-500');
+            } else {
+                isPomodoroRunning = true;
+                btn.innerText = 'PAUSAR';
+                btn.classList.replace('bg-red-500', 'bg-orange-500');
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    if(pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        isPomodoroRunning = false;
+                        document.getElementById('pomo-display').innerText = "00:00";
+                        alert("Pomodoro Finalizado!"); // Simple alert
+                        resetPomodoro();
+                    } else {
+                        document.getElementById('pomo-display').innerText = formatTime(pomodoroTime);
+                    }
+                }, 1000);
+            }
+        }
+        function resetPomodoro() {
+            clearInterval(pomodoroInterval);
+            isPomodoroRunning = false;
+            pomodoroTime = 25 * 60;
+            const display = document.getElementById('pomo-display');
+            const btn = document.getElementById('pomo-btn');
+            if(display) display.innerText = "25:00";
+            if(btn) { btn.innerText = "INICIAR"; btn.classList.remove('bg-orange-500'); btn.classList.add('bg-red-500'); }
+        }
+
+        // WORLD CLOCK
+        let worldClockInterval;
+        function renderWorldClock() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="globe" class="text-blue-500"></i> Relógio Mundial
+                    </h2>
+                    <div id="world-clocks" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Clocks -->
+                    </div>
+                </div>`;
+        }
+        function startWorldClock() {
+            updateWorldClocks();
+            if(worldClockInterval) clearInterval(worldClockInterval);
+            worldClockInterval = setInterval(updateWorldClocks, 1000);
+        }
+        function updateWorldClocks() {
+            const zones = [
+                { label: 'São Paulo', tz: 'America/Sao_Paulo' },
+                { label: 'New York', tz: 'America/New_York' },
+                { label: 'London', tz: 'Europe/London' },
+                { label: 'Tokyo', tz: 'Asia/Tokyo' }
+            ];
+            const container = document.getElementById('world-clocks');
+            if(!container) return;
+
+            container.innerHTML = zones.map(z => {
+                const time = new Date().toLocaleTimeString('en-US', { timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                const date = new Date().toLocaleDateString('pt-BR', { timeZone: z.tz, day: 'numeric', month: 'short' });
+                return `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">${z.label}</span>
+                    <span class="text-3xl font-mono font-bold text-slate-800 dark:text-white">${time}</span>
+                    <span class="text-[10px] text-slate-500">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // OBJECTION COUNTER
+        function renderObjectionCounter() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="trello" class="text-purple-500"></i> Contador de Objeções
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="obj-input" placeholder="Nova Objeção..." class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-purple-500 text-slate-800 dark:text-white" onkeydown="if(event.key==='Enter') addObjection()">
+                        <button onclick="addObjection()" class="p-2 bg-purple-500 hover:bg-purple-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="obj-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getObjections() { return JSON.parse(localStorage.getItem('bh_objections') || '[]'); }
+        function addObjection() {
+            const input = document.getElementById('obj-input');
+            const text = input.value.trim();
+            if(!text) return;
+            const objs = getObjections();
+            objs.push({ id: Date.now(), text, count: 0 });
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            input.value = '';
+            refreshObjections();
+        }
+        function updateObjCount(id, delta) {
+            const objs = getObjections();
+            const obj = objs.find(o => o.id === id);
+            if(obj) {
+                obj.count = Math.max(0, obj.count + delta);
+                localStorage.setItem('bh_objections', JSON.stringify(objs));
+                refreshObjections();
+            }
+        }
+        function deleteObjection(id) {
+            let objs = getObjections();
+            objs = objs.filter(o => o.id !== id);
+            localStorage.setItem('bh_objections', JSON.stringify(objs));
+            refreshObjections();
+        }
+        function refreshObjections() {
+            const list = document.getElementById('obj-list');
+            if(!list) return;
+            const objs = getObjections();
+            list.innerHTML = objs.map(o => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group">
+                    <span class="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(o.text)}</span>
+                    <div class="flex items-center gap-2 bg-white dark:bg-black/20 rounded-lg p-1">
+                        <button onclick="updateObjCount(${o.id}, -1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500">-</button>
+                        <span class="text-sm font-bold w-6 text-center text-slate-800 dark:text-white">${o.count}</span>
+                        <button onclick="updateObjCount(${o.id}, 1)" class="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded text-purple-500">+</button>
+                    </div>
+                    <button onclick="deleteObjection(${o.id})" class="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // QUICK LINKS
+        function renderQuickLinks() {
+            return `
+                <div class="flex flex-col h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-white">
+                        <i data-lucide="link" class="text-cyan-500"></i> Links Rápidos
+                    </h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="link-name" placeholder="Nome" class="w-1/3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <input type="url" id="link-url" placeholder="URL (https://...)" class="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-cyan-500 text-slate-800 dark:text-white">
+                        <button onclick="addLink()" class="p-2 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="link-list" class="grid grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>`;
+        }
+        function getLinks() { return JSON.parse(localStorage.getItem('bh_links') || '[]'); }
+        function addLink() {
+            const name = document.getElementById('link-name').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            if(!name || !url) return;
+            const links = getLinks();
+            links.push({ id: Date.now(), name, url });
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            document.getElementById('link-name').value = '';
+            document.getElementById('link-url').value = '';
+            refreshLinks();
+        }
+        function deleteLink(id) {
+            let links = getLinks();
+            links = links.filter(l => l.id !== id);
+            localStorage.setItem('bh_links', JSON.stringify(links));
+            refreshLinks();
+        }
+        function refreshLinks() {
+            const list = document.getElementById('link-list');
+            if(!list) return;
+            const links = getLinks();
+            list.innerHTML = links.map(l => `
+                <div class="relative group p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-cyan-500/30 transition-all">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="flex flex-col items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 text-center truncate w-full">${escapeHtml(l.name)}</span>
+                    </a>
+                    <button onclick="deleteLink(${l.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // AFFIRMATION
+        const affirmations = [
+            "Você é capaz de fechar qualquer negócio.",
+            "O 'não' é apenas um degrau para o 'sim'.",
+            "Você resolve problemas reais de pessoas reais.",
+            "Sua confiança é contagiante.",
+            "Vender é ajudar.",
+            "Hoje é um ótimo dia para bater meta.",
+            "Escute mais, fale menos.",
+            "Persistência vence resistência.",
+            "Você é um consultor de confiança.",
+            "Cada objeção é uma oportunidade de agregar valor."
+        ];
+        function renderAffirmation() {
+            const random = affirmations[Math.floor(Math.random() * affirmations.length)];
+            return `
+                <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div class="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 animate-pulse">
+                        <i data-lucide="sun" class="w-10 h-10 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-4 leading-tight">"${random}"</h2>
+                    <p class="text-sm text-slate-500 font-medium uppercase tracking-widest">Mantra do Dia</p>
+                </div>`;
+        }
+
+
+        function saveSettings() {
+            const newName = document.getElementById('set-username').value;
+            const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
+            const newSize = document.getElementById('set-fontsize').value;
+            const newTone = document.getElementById('set-tone').value;
+
+            if(newName) {
+                window.userName = newName.toUpperCase();
+                localStorage.setItem('bh_username', window.userName);
+                const greeting = document.getElementById('greeting-text');
+                if(greeting) greeting.innerText = `${window.userName} ONLINE`;
+        const savedSize = localStorage.getItem('bh_fontsize');
+        if(savedSize) applyFontSize(savedSize);
+            }
+
+            if(newKey) {
+                window.apiKey = newKey;
+                localStorage.setItem('bh_apikey', window.apiKey);
+                endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
+            }
+
+            if(newSize) {
+                localStorage.setItem('bh_fontsize', newSize);
+                applyFontSize(newSize);
+            }
+
+            if(newTone) {
+                localStorage.setItem('bh_tone', newTone);
+            }
+
+            showToast("CONFIGURAÇÕES SALVAS! 💾");
+            setTimeout(toggleSettings, 500);
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.classList.remove('text-sm', 'text-base', 'text-lg');
+            if(size !== 'text-sm') document.documentElement.classList.add(size);
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('set-username').value = localStorage.getItem('bh_username') || '';
+            document.getElementById('set-apikey').value = localStorage.getItem('bh_apikey') || '';
+            document.getElementById('set-webhook').value = localStorage.getItem('bh_webhook') || '';
+            document.getElementById('set-fontsize').value = localStorage.getItem('bh_fontsize') || 'text-sm';
+            document.getElementById('set-tone').value = localStorage.getItem('bh_tone') || 'professional';
+        }
+
+        function exportSettings() {
+            const data = {
+                username: localStorage.getItem('bh_username'),
+                webhook: localStorage.getItem('bh_webhook'),
+                theme: localStorage.getItem('bh_theme'),
+                fontsize: localStorage.getItem('bh_fontsize'),
+                tone: localStorage.getItem('bh_tone'),
+                favorites: localStorage.getItem('bh_favorites'),
+                links: localStorage.getItem('bh_links'),
+                objections: localStorage.getItem('bh_objections')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'birthhub_config.json';
+            a.click();
+        }
+
+        function importSettings() {
+            document.getElementById('import-file').click();
+        }
+
+        function processImport(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.username) localStorage.setItem('bh_username', data.username);
+                    if(data.webhook) localStorage.setItem('bh_webhook', data.webhook);
+                    if(data.theme) localStorage.setItem('bh_theme', data.theme);
+                    if(data.fontsize) localStorage.setItem('bh_fontsize', data.fontsize);
+                    if(data.tone) localStorage.setItem('bh_tone', data.tone);
+                    if(data.favorites) localStorage.setItem('bh_favorites', data.favorites);
+                    if(data.links) localStorage.setItem('bh_links', data.links);
+                    if(data.objections) localStorage.setItem('bh_objections', data.objections);
+
+                    showToast("Importado com Sucesso!");
+                    setTimeout(() => location.reload(), 1000);
+                } catch(err) {
+                    showError("Erro na Importação", "Arquivo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function sendToCRM() {
+            const webhook = localStorage.getItem('bh_webhook');
+            if(!webhook) { showError('Erro', 'Configure o Webhook nas configurações.'); return; }
+
+            const text = document.getElementById('t-output').innerText;
+            if(!text || text.includes('Aguardando')) { showError('Erro', 'Nada para enviar.'); return; }
+
+            try {
+                showToast('Enviando...');
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        user: window.userName,
+                        content: text
+                    })
+                });
+                showToast('Enviado com Sucesso! 🚀');
+            } catch(e) {
+                showError('Falha no Envio', e.message);
+            }
+        }
+
+function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+
+            if(isHidden) {
+                loadSettingsUI();
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
+    </script>
 
     <!-- Error Modal -->
     <div id="error-modal" class="fixed inset-0 z-[400] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity opacity-0">
