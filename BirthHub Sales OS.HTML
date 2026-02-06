@@ -7,6 +7,7 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- Firebase SDKs -->
     <script type="module">
@@ -392,6 +393,7 @@
         // CONFIG
         window.apiKey = localStorage.getItem('bh_apikey') || "";
         window.userName = localStorage.getItem('bh_username') || "MARCELO";
+        window.crmUrl = localStorage.getItem('bh_webhook') || "";
 
         const getEndpoints = () => ({
             text: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${window.apiKey}`,
@@ -679,6 +681,12 @@
                                 <span class="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Resultado Gemini Pro</span>
                             </div>
                             <div class="flex gap-2">
+                                <button onclick="sendToCRM()" class="w-8 h-8 rounded-full glass flex items-center justify-center hover:bg-blue-500 hover:text-white hover:border-blue-400 transition-all text-slate-400" title="Enviar p/ CRM">
+                                    <i data-lucide="webhook" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="exportPDF('${tool.name}')" class="w-8 h-8 rounded-full glass flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-400 transition-all text-slate-400" title="PDF">
+                                    <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
+                                </button>
                                 <button onclick="saveResult('${tool.name}')" class="w-8 h-8 rounded-full glass flex items-center justify-center hover:bg-green-500 hover:text-white hover:border-green-400 transition-all text-slate-400" title="Salvar">
                                     <i data-lucide="save" class="w-3.5 h-3.5"></i>
                                 </button>
@@ -1014,6 +1022,45 @@
             if(window.saveToHistory) window.saveToHistory(name, content, currentModule);
         }
 
+        async function sendToCRM() {
+            const content = document.getElementById('t-output').innerText;
+            if (!content || content.includes("Aguardando")) return showToast("Nada para enviar!");
+            if (!window.crmUrl) return showToast("Configure o Webhook!");
+
+            try {
+                await fetch(window.crmUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        module: currentModule,
+                        operator: window.userName,
+                        timestamp: new Date().toISOString(),
+                        content: content
+                    })
+                });
+                showToast("ENVIADO AO CRM! 🚀");
+            } catch (e) {
+                console.error(e);
+                showToast("Erro no envio.");
+            }
+        }
+
+        function exportPDF(name) {
+            const element = document.getElementById('t-output');
+            if (!element.innerText || element.innerText.includes("Aguardando")) return showToast("Nada para exportar!");
+
+            const opt = {
+              margin:       10,
+              filename:     `BirthHub-${name}-${Date.now()}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2 },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+            showToast("Gerando PDF... 📄");
+        }
+
         function copyRes() {
             navigator.clipboard.writeText(document.getElementById('t-output').innerText);
             showToast("COPIADO! 📋");
@@ -1081,6 +1128,7 @@
                 modal.classList.remove('hidden');
                 document.getElementById('set-username').value = window.userName;
                 document.getElementById('set-apikey').value = window.apiKey;
+                document.getElementById('set-webhook').value = window.crmUrl;
                 requestAnimationFrame(() => {
                     modal.classList.remove('opacity-0');
                     modal.querySelector('div').classList.remove('scale-95');
@@ -1095,6 +1143,7 @@
         function saveSettings() {
             const newName = document.getElementById('set-username').value;
             const newKey = document.getElementById('set-apikey').value;
+            const newWebhook = document.getElementById('set-webhook').value;
 
             if(newName) {
                 window.userName = newName.toUpperCase();
@@ -1107,6 +1156,11 @@
                 window.apiKey = newKey;
                 localStorage.setItem('bh_apikey', window.apiKey);
                 endpoints = getEndpoints();
+            }
+
+            if(newWebhook !== undefined) {
+                 window.crmUrl = newWebhook;
+                 localStorage.setItem('bh_webhook', window.crmUrl);
             }
 
             showToast("CONFIGURAÇÕES SALVAS! 💾");
@@ -1145,6 +1199,14 @@
                         <i data-lucide="key" class="absolute right-4 top-3 w-4 h-4 text-slate-400 opacity-50"></i>
                     </div>
                     <p class="text-[9px] text-slate-500 ml-2">Sua chave é salva apenas no navegador (LocalStorage).</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-brand-primary uppercase tracking-wider ml-2">Webhook CRM (Zapier/n8n)</label>
+                    <div class="relative">
+                        <input type="url" id="set-webhook" placeholder="https://hooks.zapier.com/..." class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:border-brand-primary/50 dark:text-white text-slate-800 transition-all font-mono">
+                        <i data-lucide="webhook" class="absolute right-4 top-3 w-4 h-4 text-slate-400 opacity-50"></i>
+                    </div>
                 </div>
             </div>
 
