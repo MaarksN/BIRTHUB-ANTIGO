@@ -888,14 +888,14 @@
             input.value = '';
 
             // User Bubble
-            msgs.innerHTML += `
-                <div class="flex gap-3 flex-row-reverse animate-[popIn_0.3s_ease-out]">
-                    <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">EU</div>
-                    <div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-sm leading-relaxed text-white max-w-[80%]">
-                        ${userText}
-                    </div>
-                </div>
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex gap-3 flex-row-reverse animate-[popIn_0.3s_ease-out]";
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">EU</div>
+                <div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-sm leading-relaxed text-white max-w-[80%] msg-content"></div>
             `;
+            msgDiv.querySelector('.msg-content').textContent = userText;
+            msgs.appendChild(msgDiv);
             msgs.scrollTop = msgs.scrollHeight;
 
             if (!roleplayHistory[toolId]) roleplayHistory[toolId] = [];
@@ -993,7 +993,12 @@
             const msgs = document.getElementById('chat-messages');
             if(!input.value) return;
             const text = input.value;
-            msgs.innerHTML += `<div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]">${text}</div>`;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]";
+            msgDiv.textContent = text;
+            msgs.appendChild(msgDiv);
+
             input.value = "";
             msgs.scrollTop = msgs.scrollHeight;
             
