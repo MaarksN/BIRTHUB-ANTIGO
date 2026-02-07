@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Benchmark</title>
+</head>
+<body>
+    <div id="msgs-bad"></div>
+    <div id="msgs-good"></div>
+    <script>
+        const iterations = 1000;
+        const htmlContent = `
+                <div class="flex gap-3 flex-row-reverse animate-[popIn_0.3s_ease-out]">
+                    <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">EU</div>
+                    <div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-sm leading-relaxed text-white max-w-[80%]">
+                        Test Message
+                    </div>
+                </div>
+            `;
+
+        window.runBenchmark = () => {
+            const msgsBad = document.getElementById('msgs-bad');
+            const msgsGood = document.getElementById('msgs-good');
+
+            // Warmup
+            msgsBad.innerHTML = '';
+            msgsGood.innerHTML = '';
+
+            // Measure Bad
+            const startBad = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                msgsBad.innerHTML += htmlContent;
+            }
+            const endBad = performance.now();
+            const timeBad = endBad - startBad;
+
+            // Measure Good
+            const startGood = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                msgsGood.insertAdjacentHTML('beforeend', htmlContent);
+            }
+            const endGood = performance.now();
+            const timeGood = endGood - startGood;
+
+            return {
+                bad: timeBad,
+                good: timeGood,
+                improvement: timeBad / timeGood
+            };
+        };
+    </script>
+</body>
+</html>

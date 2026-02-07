@@ -888,14 +888,14 @@
             input.value = '';
 
             // User Bubble
-            msgs.innerHTML += `
+            msgs.insertAdjacentHTML('beforeend', `
                 <div class="flex gap-3 flex-row-reverse animate-[popIn_0.3s_ease-out]">
                     <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">EU</div>
                     <div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-sm leading-relaxed text-white max-w-[80%]">
                         ${userText}
                     </div>
                 </div>
-            `;
+            `);
             msgs.scrollTop = msgs.scrollHeight;
 
             if (!roleplayHistory[toolId]) roleplayHistory[toolId] = [];
@@ -914,14 +914,14 @@
                 roleplayHistory[toolId].push({ role: 'Vendedor', text: userText });
                 roleplayHistory[toolId].push({ role: 'Persona', text: aiText });
 
-                msgs.innerHTML += `
+                msgs.insertAdjacentHTML('beforeend', `
                     <div class="flex gap-3 animate-[popIn_0.3s_ease-out]">
                         <div class="w-8 h-8 rounded-full bg-${tool.color}-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-lg">${tool.emoji}</div>
                         <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-md text-sm leading-relaxed text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 max-w-[80%]">
                             ${aiText}
                         </div>
                     </div>
-                `;
+                `);
                 msgs.scrollTop = msgs.scrollHeight;
                 speakResult(aiText);
             } catch(e) {}
@@ -993,7 +993,7 @@
             const msgs = document.getElementById('chat-messages');
             if(!input.value) return;
             const text = input.value;
-            msgs.innerHTML += `<div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]">${text}</div>`;
+            msgs.insertAdjacentHTML('beforeend', `<div class="bg-brand-primary p-4 rounded-2xl rounded-tr-none shadow-md text-xs leading-relaxed text-white ml-auto max-w-[80%]">${text}</div>`);
             input.value = "";
             msgs.scrollTop = msgs.scrollHeight;
             
@@ -1004,7 +1004,7 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: `Aja como um Mentor ${currentModule.toUpperCase()}. Responda curto: ${text}` }] }] })
                 });
                 const ai = res.candidates?.[0]?.content?.parts?.[0]?.text;
-                msgs.innerHTML += `<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-sm text-xs leading-relaxed text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 max-w-[90%]">${ai}</div>`;
+                msgs.insertAdjacentHTML('beforeend', `<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-sm text-xs leading-relaxed text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 max-w-[90%]">${ai}</div>`);
                 msgs.scrollTop = msgs.scrollHeight;
             } catch(e) {}
         }
