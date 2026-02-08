@@ -101,7 +101,7 @@
                     </div>
                     `;
                 }).join('');
-                lucide.createIcons();
+                lucide.createIcons({ root: list });
             } catch (e) {
                 console.error(e);
                 list.innerHTML = `<div class="col-span-full text-center text-rose-500 font-bold">Erro ao carregar histórico.</div>`;
